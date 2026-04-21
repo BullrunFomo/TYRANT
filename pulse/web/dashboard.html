@@ -1394,7 +1394,7 @@ let ws;
 let wsReconnectDelay = 1000;
 
 function connectWS() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
   ws.onopen = () => {
     wsReconnectDelay = 1000;
     addLog('WebSocket connected', 'OK');
