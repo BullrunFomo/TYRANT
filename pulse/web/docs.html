@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TYRANT//BOT — DOCS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap');
+
+:root {
+  --bg:        #0a0a0f;
+  --bg2:       #05050a;
+  --bg3:       #0d0d18;
+  --border:    #1a1a2e;
+  --green:     #22c55e;
+  --green-dim: #166534;
+  --red:       #ef4444;
+  --red-dim:   #7f1d1d;
+  --cyan:      #22d3ee;
+  --cyan-dim:  #164e63;
+  --purple:    #a855f7;
+  --purple2:   #7c3aed;
+  --yellow:    #eab308;
+  --blue:      #3b82f6;
+  --white:     #e2e8f0;
+  --dim:       #475569;
+  --magenta:   #e879f9;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'JetBrains Mono','Courier New',monospace;
+  background: var(--bg);
+  color: var(--white);
+  font-size: 12px;
+  min-height: 100vh;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--purple2);border-radius:2px}
+
+/* ─── HEADER ─── */
+#header {
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px;
+  height: 36px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--purple2);
+}
+.logo { color: var(--purple); font-weight: 700; font-size: 14px; letter-spacing: 2px; text-decoration: none; }
+.logo span { color: var(--cyan); }
+.h-sep { color: var(--border); }
+.h-tag { font-size: 10px; letter-spacing: 2px; color: var(--dim); font-weight: 700; }
+.h-badge {
+  padding: 2px 8px; border-radius: 2px; font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  background: rgba(168,85,247,0.1); color: var(--purple); border: 1px solid var(--purple2);
+}
+.h-nav { margin-left: auto; display: flex; align-items: center; gap: 18px; }
+.h-nav a {
+  color: var(--dim); font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-decoration: none; display: flex; align-items: center; gap: 5px;
+  transition: color 0.2s;
+}
+.h-nav a:hover { color: var(--purple); }
+.h-nav a.active { color: var(--cyan); }
+
+/* ─── LAYOUT ─── */
+#layout {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ─── SIDEBAR ─── */
+#sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 36px;
+  height: calc(100vh - 36px);
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  padding: 20px 0;
+  background: var(--bg2);
+  scrollbar-width: none;
+}
+#sidebar::-webkit-scrollbar { display: none; }
+.sb-group { margin-bottom: 20px; }
+.sb-heading {
+  font-size: 9px; letter-spacing: 2px; font-weight: 700;
+  color: var(--dim); text-transform: uppercase;
+  padding: 0 16px 8px; display: flex; align-items: center; gap: 6px;
+}
+.sb-heading::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.sb-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 16px;
+  font-size: 11px; color: var(--dim); text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.sb-link:hover { color: var(--white); background: rgba(255,255,255,0.02); }
+.sb-link.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(34,211,238,0.04); }
+.sb-link .sb-dot {
+  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+  background: currentColor; opacity: 0.5;
+}
+.sb-link.active .sb-dot { opacity: 1; box-shadow: 0 0 6px currentColor; }
+
+/* ─── CONTENT ─── */
+#content {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px 80px;
+}
+
+/* ─── HERO ─── */
+#hero {
+  position: relative;
+  margin-bottom: 48px;
+  padding: 40px 36px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--purple);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 600px 300px at 85% 50%, rgba(168,85,247,0.06), transparent),
+    radial-gradient(ellipse 300px 400px at 10% 80%, rgba(34,211,238,0.04), transparent);
+  pointer-events: none;
+}
+.hero-eyebrow {
+  font-size: 9px; letter-spacing: 4px; color: var(--purple); font-weight: 700;
+  margin-bottom: 14px; text-transform: uppercase;
+}
+.hero-title {
+  font-size: 36px; font-weight: 700; letter-spacing: 4px;
+  color: var(--white); line-height: 1; margin-bottom: 6px;
+}
+.hero-title .sl { color: var(--cyan); }
+.hero-sub {
+  font-size: 12px; color: var(--dim); line-height: 1.8;
+  max-width: 600px; margin-bottom: 24px;
+}
+.hero-sub b { color: var(--white); font-weight: 600; }
+.hero-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  padding: 3px 10px; border-radius: 2px; font-size: 10px;
+  font-weight: 700; letter-spacing: 1px;
+}
+.pill-cyan    { background: rgba(34,211,238,0.08);  color: var(--cyan);    border: 1px solid var(--cyan-dim); }
+.pill-purple  { background: rgba(168,85,247,0.08);  color: var(--purple);  border: 1px solid var(--purple2); }
+.pill-green   { background: rgba(34,197,94,0.08);   color: var(--green);   border: 1px solid var(--green-dim); }
+.pill-yellow  { background: rgba(234,179,8,0.08);   color: var(--yellow);  border: 1px solid rgba(234,179,8,0.3); }
+.pill-magenta { background: rgba(232,121,249,0.08); color: var(--magenta); border: 1px solid rgba(232,121,249,0.3); }
+.pill-dim     { background: rgba(71,85,105,0.1);    color: var(--dim);     border: 1px solid rgba(71,85,105,0.3); }
+
+/* terminal ticker */
+#hero-ticker {
+  position: absolute; right: 36px; top: 40px; bottom: 40px;
+  width: 240px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--bg2);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.ticker-head {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 9px; letter-spacing: 2px; color: var(--cyan);
+  font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(34,211,238,0.03);
+  flex-shrink: 0;
+}
+#ticker-body { flex: 1; overflow: hidden; position: relative; }
+.ticker-line {
+  display: flex; gap: 6px; padding: 3px 10px;
+  font-size: 9px; line-height: 1.5;
+  animation: ticker-fade-in 0.3s ease;
+}
+@keyframes ticker-fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+.tl-ts { color: var(--dim); flex-shrink: 0; width: 44px; }
+.tl-tag { flex-shrink: 0; width: 38px; font-weight: 700; font-size: 9px; }
+.tl-msg { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-ok     { color: var(--green);  }
+.tl-scan   { color: var(--cyan);   }
+.tl-info   { color: var(--white);  }
+.tl-system { color: var(--blue);   }
+.tl-error  { color: var(--red);    }
+
+/* ─── DOC SECTION ─── */
+.doc-section {
+  margin-bottom: 48px;
+  scroll-margin-top: 56px;
+}
+.sec-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.sec-icon {
+  width: 26px; height: 26px; border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.sec-title { font-size: 13px; font-weight: 700; letter-spacing: 2px; }
+.sec-num { font-size: 9px; color: var(--dim); letter-spacing: 1px; margin-left: auto; }
+
+/* ─── PIPELINE ─── */
+.pipeline { display: flex; flex-direction: column; gap: 2px; margin: 16px 0; }
+.pipe-node {
+  display: flex; align-items: stretch; gap: 0;
+  position: relative;
+}
+.pipe-spine {
+  display: flex; flex-direction: column; align-items: center;
+  width: 28px; flex-shrink: 0;
+}
+.pipe-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  z-index: 1; margin-top: 14px;
+}
+.pipe-line {
+  width: 2px; flex: 1; margin: 2px 0;
+}
+.pipe-node:last-child .pipe-line { display: none; }
+.pipe-body {
+  flex: 1; padding: 10px 14px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 2px; margin-bottom: 2px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.pipe-body:hover { background: #14142a; }
+.pipe-name { font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 4px; }
+.pipe-desc { font-size: 11px; color: var(--dim); line-height: 1.6; }
+.pipe-tag  { font-size: 9px; font-weight: 700; letter-spacing: 1px; float: right; margin-top: -2px; opacity: 0.6; }
+
+/* ─── TABLES ─── */
+.doc-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+.doc-table th {
+  text-align: left; font-size: 9px; letter-spacing: 2px; font-weight: 700;
+  color: var(--dim); padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.01);
+}
+.doc-table td {
+  padding: 9px 12px; border-bottom: 1px solid rgba(26,26,46,0.6);
+  font-size: 11px; vertical-align: top; line-height: 1.6;
+}
+.doc-table tr:last-child td { border-bottom: none; }
+.doc-table tr:hover td { background: rgba(255,255,255,0.015); }
+.td-key     { color: var(--cyan);   font-weight: 700; white-space: nowrap; }
+.td-type    { color: var(--yellow); font-size: 10px;  white-space: nowrap; }
+.td-default { color: var(--green);  font-size: 10px;  white-space: nowrap; }
+.td-desc    { color: var(--dim); }
+.td-badge   { white-space: nowrap; }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 2px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+}
+.b-green   { background: rgba(34,197,94,0.12);  color: var(--green);   border: 1px solid var(--green-dim); }
+.b-yellow  { background: rgba(234,179,8,0.12);  color: var(--yellow);  border: 1px solid rgba(234,179,8,0.3); }
+.b-red     { background: rgba(239,68,68,0.12);  color: var(--red);     border: 1px solid var(--red-dim); }
+.b-cyan    { background: rgba(34,211,238,0.1);  color: var(--cyan);    border: 1px solid var(--cyan-dim); }
+.b-purple  { background: rgba(168,85,247,0.12); color: var(--purple);  border: 1px solid var(--purple2); }
+.b-dim     { background: rgba(71,85,105,0.15);  color: var(--dim);     border: 1px solid rgba(71,85,105,0.35); }
+.b-magenta { background: rgba(232,121,249,0.1); color: var(--magenta); border: 1px solid rgba(232,121,249,0.3); }
+.b-blue    { background: rgba(59,130,246,0.1);  color: var(--blue);    border: 1px solid rgba(59,130,246,0.3); }
+
+/* ─── CALLOUT ─── */
+.callout {
+  display: flex; gap: 12px; padding: 12px 16px;
+  border-radius: 2px; margin: 14px 0;
+  font-size: 11px; line-height: 1.7; align-items: flex-start;
+}
+.callout .ci { flex-shrink: 0; margin-top: 1px; font-size: 13px; }
+.callout.info   { background: rgba(34,211,238,0.05); border-left: 3px solid var(--cyan);   color: rgba(34,211,238,0.85); }
+.callout.warn   { background: rgba(234,179,8,0.05);  border-left: 3px solid var(--yellow); color: rgba(234,179,8,0.85); }
+.callout.danger { background: rgba(239,68,68,0.05);  border-left: 3px solid var(--red);    color: rgba(239,68,68,0.85); }
+.callout.ok     { background: rgba(34,197,94,0.05);  border-left: 3px solid var(--green);  color: rgba(34,197,94,0.85); }
+
+/* ─── MODE GRID ─── */
+.mode-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 16px 0; }
+.mode-card {
+  padding: 16px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 2px; transition: border-color 0.2s, background 0.2s;
+}
+.mode-card:hover { background: #14142a; }
+.mc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.mc-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.mc-name { font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.mc-desc { font-size: 11px; color: var(--dim); line-height: 1.6; }
+
+/* ─── WALLET FLOW ─── */
+.flow-steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.flow-step  { display: flex; align-items: stretch; gap: 0; }
+.flow-left  { display: flex; flex-direction: column; align-items: center; width: 34px; flex-shrink: 0; }
+.flow-num   {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; z-index: 1;
+}
+.flow-vline { width: 2px; flex: 1; margin: 3px 0; }
+.flow-step:last-child .flow-vline { display: none; }
+.flow-body  { flex: 1; padding: 4px 0 14px; }
+.flow-title { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+.flow-desc  { font-size: 11px; color: var(--dim); line-height: 1.6; }
+.flow-desc em { font-style: normal; color: var(--cyan); }
+
+/* ─── LOG LEGEND ─── */
+.log-legend { display: flex; flex-direction: column; gap: 0; margin: 12px 0; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
+.ll-row {
+  display: flex; gap: 12px; padding: 9px 14px;
+  border-bottom: 1px solid rgba(26,26,46,0.6);
+  align-items: flex-start;
+}
+.ll-row:last-child { border-bottom: none; }
+.ll-row:hover { background: rgba(255,255,255,0.015); }
+.ll-level { width: 54px; flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding-top: 1px; }
+.ll-info  { flex: 1; }
+.ll-desc  { font-size: 11px; color: var(--dim); line-height: 1.5; }
+.ll-ex    { font-size: 10px; color: var(--dim); opacity: 0.5; font-style: italic; margin-top: 2px; }
+
+/* ─── SAFETY GRID ─── */
+.safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.safety-card {
+  padding: 14px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 2px;
+}
+.sc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.sc-icon { font-size: 13px; }
+.sc-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.sc-desc  { font-size: 11px; color: var(--dim); line-height: 1.6; }
+
+/* ─── PULSE DOTS ─── */
+.pdot {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+}
+.pdot-cyan    { background: var(--cyan);    animation: pc 2s ease-in-out infinite; }
+.pdot-purple  { background: var(--purple);  animation: pp 2s ease-in-out infinite; }
+.pdot-magenta { background: var(--magenta); animation: pm 2s ease-in-out infinite; }
+.pdot-green   { background: var(--green);   animation: pg 2s ease-in-out infinite; }
+.pdot-yellow  { background: var(--yellow);  animation: py 2s ease-in-out infinite; }
+.pdot-red     { background: var(--red);     animation: pr 2s ease-in-out infinite; }
+@keyframes pc { 0%,100%{opacity:1;box-shadow:0 0 5px var(--cyan)}   50%{opacity:.2;box-shadow:none} }
+@keyframes pp { 0%,100%{opacity:1;box-shadow:0 0 5px var(--purple)} 50%{opacity:.2;box-shadow:none} }
+@keyframes pm { 0%,100%{opacity:1;box-shadow:0 0 5px var(--magenta)}50%{opacity:.2;box-shadow:none} }
+@keyframes pg { 0%,100%{opacity:1;box-shadow:0 0 5px var(--green)}  50%{opacity:.2;box-shadow:none} }
+@keyframes py { 0%,100%{opacity:1;box-shadow:0 0 5px var(--yellow)} 50%{opacity:.2;box-shadow:none} }
+@keyframes pr { 0%,100%{opacity:1;box-shadow:0 0 5px var(--red)}    50%{opacity:.2;box-shadow:none} }
+
+/* ─── CODE BLOCK ─── */
+.code-block {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 2px;
+  padding: 14px 16px; font-size: 11px; line-height: 1.7; overflow-x: auto;
+  margin: 12px 0; position: relative;
+}
+.code-block .c  { color: var(--dim); }
+.code-block .k  { color: var(--cyan); }
+.code-block .v  { color: var(--green); }
+.code-block .s  { color: var(--yellow); }
+.code-block .p  { color: var(--purple); }
+.code-block .cb-label {
+  position: absolute; top: 8px; right: 10px;
+  font-size: 8px; letter-spacing: 2px; color: var(--dim); font-weight: 700;
+}
+
+/* ─── API ENDPOINT ─── */
+.endpoint {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 2px;
+  margin: 10px 0; overflow: hidden;
+}
+.ep-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.01);
+}
+.ep-method {
+  font-size: 9px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 7px; border-radius: 2px;
+}
+.ep-get  { background: rgba(34,197,94,0.12);  color: var(--green);  border: 1px solid var(--green-dim); }
+.ep-post { background: rgba(168,85,247,0.12); color: var(--purple); border: 1px solid var(--purple2); }
+.ep-ws   { background: rgba(34,211,238,0.1);  color: var(--cyan);   border: 1px solid var(--cyan-dim); }
+.ep-path { color: var(--white); font-weight: 700; font-size: 11px; flex: 1; }
+.ep-tag  { font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+.ep-body { padding: 10px 14px; }
+.ep-desc { font-size: 11px; color: var(--dim); line-height: 1.6; }
+
+/* ─── DIVIDER ─── */
+.sec-divider {
+  font-size: 9px; letter-spacing: 2px; color: var(--dim); font-weight: 700;
+  text-transform: uppercase; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border); margin: 20px 0 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-divider::before { content: '//'; color: var(--purple2); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <a href="/" class="logo">TYRANT<span>//BOT</span></a>
+    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--purple);border:1px solid var(--purple2);background:rgba(168,85,247,0.12);padding:2px 6px;border-radius:3px;">v1.0</span>
+  </div>
+  <span class="h-sep">│</span>
+  <span class="h-tag">DOCUMENTATION</span>
+  <div class="h-nav">
+    <a href="/">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      DASHBOARD
+    </a>
+    <a href="/docs" class="active">DOCS
+    </a>
+  </div>
+</div>
+
+<div id="layout">
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-group">
+    <div class="sb-heading">OVERVIEW</div>
+    <a class="sb-link" href="#intro"><span class="sb-dot"></span>What is TYRANT?</a>
+    <a class="sb-link" href="#pipeline"><span class="sb-dot"></span>Pipeline</a>
+    <a class="sb-link" href="#modes"><span class="sb-dot"></span>Run Modes</a>
+  </div>
+  <div class="sb-group">
+    <div class="sb-heading">DASHBOARD</div>
+    <a class="sb-link" href="#metrics"><span class="sb-dot"></span>Launch Metrics</a>
+    <a class="sb-link" href="#chart"><span class="sb-dot"></span>PNL Chart</a>
+    <a class="sb-link" href="#execlog"><span class="sb-dot"></span>Execution Log</a>
+    <a class="sb-link" href="#scanclock"><span class="sb-dot"></span>Scan Clock</a>
+    <a class="sb-link" href="#loglevels"><span class="sb-dot"></span>Log Levels</a>
+  </div>
+  <div class="sb-group">
+    <div class="sb-heading">REFERENCE</div>
+    <a class="sb-link" href="#statuses"><span class="sb-dot"></span>Status Codes</a>
+    <a class="sb-link" href="#config"><span class="sb-dot"></span>Configuration</a>
+    <a class="sb-link" href="#api"><span class="sb-dot"></span>API Endpoints</a>
+    <a class="sb-link" href="#websocket"><span class="sb-dot"></span>WebSocket Events</a>
+  </div>
+  <div class="sb-group">
+    <div class="sb-heading">OPERATIONS</div>
+    <a class="sb-link" href="#wallet"><span class="sb-dot"></span>Wallet Sign Flow</a>
+    <a class="sb-link" href="#safety"><span class="sb-dot"></span>Safety</a>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<main id="content">
+
+  <!-- HERO -->
+  <div id="hero">
+    <div class="hero-eyebrow">// AUTONOMOUS MEME LAUNCH ENGINE</div>
+    <div class="hero-title">TYRANT<span class="sl">//</span>BOT</div>
+    <div class="hero-title" style="font-size:14px;letter-spacing:6px;color:var(--dim);margin-bottom:20px;font-weight:400;">REFERENCE MANUAL</div>
+    <div class="hero-sub">
+      An <b>autonomous meme-coin launch engine</b> built on Solana. Continuously monitors
+      <b>KnowYourMeme</b> for viral content, scores entries, downloads artwork,
+      and fires <b>pump.fun</b> token-creation transactions — with zero manual intervention.
+    </div>
+    <div class="hero-pills">
+      <span class="pill pill-cyan">FastAPI</span>
+      <span class="pill pill-purple">Python asyncio</span>
+      <span class="pill pill-green">Solana</span>
+      <span class="pill pill-yellow">pump.fun</span>
+      <span class="pill pill-magenta">KnowYourMeme</span>
+      <span class="pill pill-dim">SQLite</span>
+      <span class="pill pill-dim">WebSocket</span>
+      <span class="pill pill-dim">Chart.js</span>
+    </div>
+
+    <!-- Live terminal ticker -->
+    <div id="hero-ticker">
+      <div class="ticker-head"><span class="pdot pdot-cyan"></span>LIVE FEED PREVIEW</div>
+      <div id="ticker-body"></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: INTRO ── -->
+  <div class="doc-section" id="intro">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,211,238,0.08);color:var(--cyan);">◈</div>
+      <div class="sec-title" style="color:var(--cyan);">WHAT IS TYRANT//BOT</div>
+      <div class="sec-num">01</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      TYRANT//BOT watches <span style="color:var(--cyan);">KnowYourMeme</span> for trending meme entries, evaluates them against configurable criteria, and automatically launches them as tokens on <span style="color:var(--green);">pump.fun</span>.
+      The entire cycle — from scrape to on-chain transaction — runs without human input once configured.
+    </p>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      A <span style="color:var(--white);">FastAPI</span> web server serves a real-time dashboard and maintains WebSocket connections to all open browser tabs, pushing live events as they happen. A <span style="color:var(--white);">SQLite</span> database stores every launch record and count snapshot for historical charting.
+    </p>
+    <div class="callout ok">
+      <span class="ci">◈</span>
+      <span>All stages are fully non-blocking async. The FastAPI server, launch loop, and WebSocket broadcaster share a single asyncio event loop — zero threads, zero blocking I/O.</span>
+    </div>
+  </div>
+
+  <!-- ── SECTION: PIPELINE ── -->
+  <div class="doc-section" id="pipeline">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">▶</div>
+      <div class="sec-title" style="color:var(--purple);">PIPELINE</div>
+      <div class="sec-num">02</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:20px;max-width:700px;">
+      Every scan cycle moves through five stages. Each stage is awaited sequentially per meme entry; multiple entries in a cycle run in series up to <span style="color:var(--cyan);">MAX_LAUNCHES_PER_CYCLE</span>.
+    </p>
+    <div class="pipeline">
+      <div class="pipe-node">
+        <div class="pipe-spine">
+          <div class="pipe-dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></div>
+          <div class="pipe-line" style="background:linear-gradient(var(--cyan),var(--yellow));opacity:0.3;"></div>
+        </div>
+        <div class="pipe-body" style="border-color:rgba(34,211,238,0.2);">
+          <span class="pipe-tag" style="color:var(--cyan);">RSS / HTML</span>
+          <div class="pipe-name" style="color:var(--cyan);">KYM SCRAPER</div>
+          <div class="pipe-desc">Polls KnowYourMeme per configured category slugs. Extracts title, image URL, description, and source URL. Deduplicates against already-seen entries stored in the DB.</div>
+        </div>
+      </div>
+      <div class="pipe-node">
+        <div class="pipe-spine">
+          <div class="pipe-dot" style="background:var(--yellow);box-shadow:0 0 8px var(--yellow);"></div>
+          <div class="pipe-line" style="background:linear-gradient(var(--yellow),var(--magenta));opacity:0.3;"></div>
+        </div>
+        <div class="pipe-body" style="border-color:rgba(234,179,8,0.2);">
+          <span class="pipe-tag" style="color:var(--yellow);">FILTER + RANK</span>
+          <div class="pipe-name" style="color:var(--yellow);">SCORER</div>
+          <div class="pipe-desc">Filters entries already recorded in the DB. Ranks remaining candidates by recency, category weight, and image availability. Returns the top N entries capped by <span style="color:var(--cyan);">MAX_LAUNCHES_PER_CYCLE</span>.</div>
+        </div>
+      </div>
+      <div class="pipe-node">
+        <div class="pipe-spine">
+          <div class="pipe-dot" style="background:var(--magenta);box-shadow:0 0 8px var(--magenta);"></div>
+          <div class="pipe-line" style="background:linear-gradient(var(--magenta),var(--green));opacity:0.3;"></div>
+        </div>
+        <div class="pipe-body" style="border-color:rgba(232,121,249,0.2);">
+          <span class="pipe-tag" style="color:var(--magenta);">UPLOAD CDN</span>
+          <div class="pipe-name" style="color:var(--magenta);">IMAGE FETCH</div>
+          <div class="pipe-desc">Downloads the meme's primary image. Uploads it to IPFS / CDN to generate a stable metadata URI for the pump.fun token. Falls back to a placeholder if the image is unavailable.</div>
+        </div>
+      </div>
+      <div class="pipe-node">
+        <div class="pipe-spine">
+          <div class="pipe-dot" style="background:var(--green);box-shadow:0 0 8px var(--green);"></div>
+          <div class="pipe-line" style="background:linear-gradient(var(--green),var(--purple));opacity:0.3;"></div>
+        </div>
+        <div class="pipe-body" style="border-color:rgba(34,197,94,0.2);">
+          <span class="pipe-tag" style="color:var(--green);">SOLANA CHAIN</span>
+          <div class="pipe-name" style="color:var(--green);">PUMP.FUN TX</div>
+          <div class="pipe-desc">Builds the Solana token-creation transaction via the pump.fun API with the initial buy bundled. Signs with the configured wallet key (or defers to browser wallet in sign-flow mode) and broadcasts to the configured RPC endpoint.</div>
+        </div>
+      </div>
+      <div class="pipe-node">
+        <div class="pipe-spine">
+          <div class="pipe-dot" style="background:var(--purple);box-shadow:0 0 8px var(--purple);"></div>
+          <div class="pipe-line"></div>
+        </div>
+        <div class="pipe-body" style="border-color:rgba(168,85,247,0.2);">
+          <span class="pipe-tag" style="color:var(--purple);">SQLITE / WS</span>
+          <div class="pipe-name" style="color:var(--purple);">DB + DASHBOARD</div>
+          <div class="pipe-desc">Inserts the launch record into SQLite with status, mint address, tx signature, and SOL spent. Snapshots the running launch count for the PNL chart. Broadcasts <span style="color:var(--cyan);">exec</span>, <span style="color:var(--cyan);">log</span>, and <span style="color:var(--cyan);">stats</span> events over WebSocket to all connected browsers.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: RUN MODES ── -->
+  <div class="doc-section" id="modes">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(234,179,8,0.08);color:var(--yellow);">◉</div>
+      <div class="sec-title" style="color:var(--yellow);">RUN MODES</div>
+      <div class="sec-num">03</div>
+    </div>
+    <div class="mode-grid">
+      <div class="mode-card" style="border-top:2px solid var(--yellow);">
+        <div class="mc-head">
+          <div class="mc-dot pdot-yellow" style="background:var(--yellow);animation:py 2s ease-in-out infinite;"></div>
+          <div class="mc-name" style="color:var(--yellow);">DRY RUN</div>
+        </div>
+        <div class="mc-desc">Full pipeline executes — scraping, scoring, image fetch — but no Solana transaction is broadcast. All records are written with status <span class="badge b-yellow">DRY_RUN</span>. Safe for validating configuration and feed quality.</div>
+      </div>
+      <div class="mode-card" style="border-top:2px solid var(--green);">
+        <div class="mc-head">
+          <div class="mc-dot" style="background:var(--green);box-shadow:0 0 6px var(--green);"></div>
+          <div class="mc-name" style="color:var(--green);">LIVE</div>
+        </div>
+        <div class="mc-desc">Real transactions broadcast to Solana mainnet via pump.fun. Requires a funded wallet and a valid <span style="color:var(--cyan);">SOLANA_PRIVATE_KEY</span> in <span style="color:var(--cyan);">.env</span>. Each launch burns SOL for the initial buy + priority fee.</div>
+      </div>
+      <div class="mode-card" style="border-top:2px solid var(--cyan);">
+        <div class="mc-head">
+          <div class="mc-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan);"></div>
+          <div class="mc-name" style="color:var(--cyan);">BROWSER SIGN</div>
+        </div>
+        <div class="mc-desc">Bot prepares the unsigned transaction server-side, then broadcasts a <span style="color:var(--purple);">launch_request</span> WebSocket event. The connected Phantom or Solflare wallet signs and submits. No private key stored on the server.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: METRICS ── -->
+  <div class="doc-section" id="metrics">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,211,238,0.08);color:var(--cyan);">▦</div>
+      <div class="sec-title" style="color:var(--cyan);">LAUNCH METRICS</div>
+      <div class="sec-num">04</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;">The top metrics strip updates live over WebSocket each cycle. Each cell has a specific data source.</p>
+    <table class="doc-table">
+      <thead><tr><th>WIDGET</th><th>DATA SOURCE</th><th>DESCRIPTION</th></tr></thead>
+      <tbody>
+        <tr><td class="td-key">TOTAL LAUNCHES</td><td class="td-default">db.get_total_launches()</td><td class="td-desc">Cumulative count of all tokens ever launched in the local SQLite DB since first run.</td></tr>
+        <tr><td class="td-key">TODAY</td><td class="td-default">db.get_today_launches()</td><td class="td-desc">Launches recorded since midnight UTC today. Resets at 00:00 UTC.</td></tr>
+        <tr><td class="td-key">WIN RATE</td><td class="td-default">n_ok / (n_ok + n_fail)</td><td class="td-desc">Success ratio of LAUNCHED + DRY_RUN vs FAILED across the last 200 records.</td></tr>
+        <tr><td class="td-key">SOL SPENT</td><td class="td-default">db.get_total_sol_spent()</td><td class="td-desc">Sum of <span style="color:var(--cyan);">sol_spent</span> across all live launches. Always 0 in dry-run mode.</td></tr>
+        <tr><td class="td-key">HISTOGRAM</td><td class="td-default">exec WS events</td><td class="td-desc">Per-cycle bar chart of launches. Each bar = one completed scan cycle. Populated from LAUNCH/DRY exec events in real-time.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: CHART ── -->
+  <div class="doc-section" id="chart">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">▲</div>
+      <div class="sec-title" style="color:var(--purple);">PNL CHART</div>
+      <div class="sec-num">05</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:12px;max-width:700px;">
+      The main chart plots <span style="color:var(--white);">launches per DB snapshot</span> over time — a bar chart of deltas, not cumulative totals. Each bar represents the number of new launches that occurred between two consecutive count snapshots.
+    </p>
+    <table class="doc-table">
+      <thead><tr><th>ELEMENT</th><th>MEANING</th></tr></thead>
+      <tbody>
+        <tr><td class="td-key">Spike</td><td class="td-desc">Multiple launches happened in that snapshot window — active cycle.</td></tr>
+        <tr><td class="td-key">Zero bar</td><td class="td-desc">No new launches between snapshots — idle scan cycle.</td></tr>
+        <tr><td class="td-key">X-axis labels</td><td class="td-desc">HH:MM timestamp of when each snapshot was recorded to SQLite.</td></tr>
+        <tr><td class="td-key">Y-axis</td><td class="td-desc">Launches per snapshot window. Min pinned to 0.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <span class="ci">⚠</span>
+      <span>The chart plots <strong>deltas</strong>, not running totals. A flat line at height 1 means exactly one launch per cycle — consistent activity, not a stall.</span>
+    </div>
+  </div>
+
+  <!-- ── SECTION: EXEC LOG ── -->
+  <div class="doc-section" id="execlog">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">≡</div>
+      <div class="sec-title" style="color:var(--purple);">EXECUTION LOG</div>
+      <div class="sec-num">06</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      Real-time event stream from the bot. Entries are color-coded by level and held in a 200-entry circular buffer on the server. New browser connections receive the full buffer immediately via the WebSocket <span style="color:var(--cyan);">init</span> payload.
+    </p>
+    <table class="doc-table">
+      <thead><tr><th>TAG</th><th>COLOR</th><th>EMITTED WHEN</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-blue">SYSTEM</span></td><td style="color:var(--blue)">blue</td><td class="td-desc">Bot startup, mode echo, config summary.</td></tr>
+        <tr><td><span class="badge b-cyan">SCAN</span></td><td style="color:var(--cyan)">cyan</td><td class="td-desc">Cycle start (Scan #N) and cycle end with next-scan interval. The "next scan in" message triggers the scan clock reset.</td></tr>
+        <tr><td><span class="badge b-green">OK</span></td><td style="color:var(--green)">green</td><td class="td-desc">Successful launch confirmation with mint address and first 16 chars of tx signature.</td></tr>
+        <tr><td><span class="badge b-dim" style="color:var(--white);background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.15);">INFO</span></td><td style="color:var(--white)">white</td><td class="td-desc">General progress — new meme detected, about-to-launch notice, config updates.</td></tr>
+        <tr><td><span class="badge b-red">ERROR</span></td><td style="color:var(--red)">red</td><td class="td-desc">Non-fatal error. Bot logs the reason and continues to the next meme entry.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: SCAN CLOCK ── -->
+  <div class="doc-section" id="scanclock">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,211,238,0.08);color:var(--cyan);">⊙</div>
+      <div class="sec-title" style="color:var(--cyan);">SCAN CLOCK</div>
+      <div class="sec-num">07</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      The scan clock bar in the ALPHA panel shows time remaining until the next scan cycle. It uses a single <span style="color:var(--white);">requestAnimationFrame</span> loop — both the bar width and the countdown text read the same timestamp each frame, keeping them perfectly synchronized with no jitter.
+    </p>
+    <table class="doc-table">
+      <thead><tr><th>STATE</th><th>COLOR</th><th>TRIGGER</th><th>MEANING</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-cyan">IDLE</span></td><td style="color:var(--cyan)">cyan</td><td class="td-desc">Log message contains "next scan in"</td><td class="td-desc">Waiting for next scan. Bar depletes from 100% to 0% over SCAN_INTERVAL_SECONDS.</td></tr>
+        <tr><td><span class="badge b-green">SCANNING</span></td><td style="color:var(--green)">green</td><td class="td-desc">Countdown reaches 0</td><td class="td-desc">Bot is actively scraping KYM. Bar stays at 0.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: LOG LEVELS ── -->
+  <div class="doc-section" id="loglevels">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,197,94,0.08);color:var(--green);">≡</div>
+      <div class="sec-title" style="color:var(--green);">LOG LEVELS</div>
+      <div class="sec-num">08</div>
+    </div>
+    <div class="log-legend">
+      <div class="ll-row">
+        <div class="ll-level" style="color:var(--blue);">SYSTEM</div>
+        <div class="ll-info">
+          <div class="ll-desc">Bot lifecycle events emitted at startup and on config changes.</div>
+          <div class="ll-ex">TYRANT//BOT initializing... · Mode: DRY RUN · Scan interval: 300s</div>
+        </div>
+      </div>
+      <div class="ll-row">
+        <div class="ll-level" style="color:var(--cyan);">SCAN</div>
+        <div class="ll-info">
+          <div class="ll-desc">One emitted at the start of each scrape cycle, one at the end. The end message contains "next scan in N s" which resets the scan clock in the dashboard.</div>
+          <div class="ll-ex">Scan #7 — scraping KnowYourMeme... · Cycle #7 complete — next scan in 300s</div>
+        </div>
+      </div>
+      <div class="ll-row">
+        <div class="ll-level" style="color:var(--white);">INFO</div>
+        <div class="ll-info">
+          <div class="ll-desc">General progress messages. Includes meme-detected and about-to-launch notices.</div>
+          <div class="ll-ex">→ Launching: Skibidi Toilet (SKIB)… · No new memes found this cycle</div>
+        </div>
+      </div>
+      <div class="ll-row">
+        <div class="ll-level" style="color:var(--green);">OK</div>
+        <div class="ll-info">
+          <div class="ll-desc">Successful on-chain confirmation. Includes mint address (first 8 chars) and tx signature (first 16 chars).</div>
+          <div class="ll-ex">✓ Launched Skibidi Toilet (SKIB) mint=3xFaK8p2 tx=5CvNmP1qXzAb7w3e</div>
+        </div>
+      </div>
+      <div class="ll-row">
+        <div class="ll-level" style="color:var(--red);">ERROR</div>
+        <div class="ll-info">
+          <div class="ll-desc">Non-fatal error captured in the launch loop. Bot logs and moves to the next entry. Investigate if persistent.</div>
+          <div class="ll-ex">✗ Launch failed: RPC timeout · Loop error: ConnectionRefusedError</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: STATUS CODES ── -->
+  <div class="doc-section" id="statuses">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(234,179,8,0.08);color:var(--yellow);">◉</div>
+      <div class="sec-title" style="color:var(--yellow);">LAUNCH STATUS CODES</div>
+      <div class="sec-num">09</div>
+    </div>
+    <table class="doc-table">
+      <thead><tr><th>STATUS</th><th>BADGE</th><th>DESCRIPTION</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="td-key">LAUNCHED</td>
+          <td class="td-badge"><span class="badge b-green">LAUNCHED</span></td>
+          <td class="td-desc">Token successfully created on Solana mainnet. Both <span style="color:var(--cyan);">tx_sig</span> and <span style="color:var(--cyan);">mint_address</span> fields are populated in the DB record.</td>
+        </tr>
+        <tr>
+          <td class="td-key">DRY_RUN</td>
+          <td class="td-badge"><span class="badge b-yellow">DRY_RUN</span></td>
+          <td class="td-desc">Simulated launch. The full pipeline executed but no real transaction was broadcast to the Solana network. <span style="color:var(--cyan);">tx_sig</span> contains a placeholder value.</td>
+        </tr>
+        <tr>
+          <td class="td-key">FAILED</td>
+          <td class="td-badge"><span class="badge b-red">FAILED</span></td>
+          <td class="td-desc">Transaction build or broadcast failed. The <span style="color:var(--cyan);">error</span> field contains the failure reason. Bot continues to the next meme entry.</td>
+        </tr>
+        <tr>
+          <td class="td-key">PENDING</td>
+          <td class="td-badge"><span class="badge b-dim">PENDING</span></td>
+          <td class="td-desc">Browser sign flow initiated. The unsigned transaction has been sent to the browser wallet but confirmation has not been received yet.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: CONFIG ── -->
+  <div class="doc-section" id="config">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">⚙</div>
+      <div class="sec-title" style="color:var(--purple);">CONFIGURATION</div>
+      <div class="sec-num">10</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      All settings are loaded from <span style="color:var(--cyan);">.env</span> at startup. The Settings panel in the dashboard can update them live — changes are written back to <span style="color:var(--cyan);">.env</span> and take effect on the next scan cycle without restarting.
+    </p>
+    <table class="doc-table">
+      <thead><tr><th>KEY</th><th>TYPE</th><th>DEFAULT</th><th>DESCRIPTION</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="td-key">DRY_RUN</td>
+          <td class="td-type">bool</td>
+          <td class="td-default">true</td>
+          <td class="td-desc">Disables real transactions. Start here until wallet is funded and settings verified.</td>
+        </tr>
+        <tr>
+          <td class="td-key">SCAN_INTERVAL_SECONDS</td>
+          <td class="td-type">int</td>
+          <td class="td-default">300</td>
+          <td class="td-desc">Seconds between KYM scrape cycles. Minimum recommended: 120s to avoid rate-limiting.</td>
+        </tr>
+        <tr>
+          <td class="td-key">MAX_LAUNCHES_PER_CYCLE</td>
+          <td class="td-type">int</td>
+          <td class="td-default">3</td>
+          <td class="td-desc">Max tokens to launch per cycle. Prevents blasting many tokens in a single scan.</td>
+        </tr>
+        <tr>
+          <td class="td-key">PUMPFUN_INITIAL_BUY_SOL</td>
+          <td class="td-type">float</td>
+          <td class="td-default">0.001</td>
+          <td class="td-desc">SOL amount for the creator initial buy bundled with the token creation transaction.</td>
+        </tr>
+        <tr>
+          <td class="td-key">PUMPFUN_PRIORITY_FEE</td>
+          <td class="td-type">float</td>
+          <td class="td-default">0.0001</td>
+          <td class="td-desc">Solana priority fee in SOL. Increase during congestion to improve transaction landing probability.</td>
+        </tr>
+        <tr>
+          <td class="td-key">SOLANA_RPC_URL</td>
+          <td class="td-type">str</td>
+          <td class="td-default">mainnet-beta</td>
+          <td class="td-desc">Solana RPC endpoint URL. Use a private/dedicated node in production to avoid public rate limits.</td>
+        </tr>
+        <tr>
+          <td class="td-key">SOLANA_PRIVATE_KEY</td>
+          <td class="td-type">str</td>
+          <td class="td-default">—</td>
+          <td class="td-desc">Base58-encoded wallet private key. <strong style="color:var(--red);">Never exposed via any API endpoint</strong> — GET /api/config returns a boolean presence flag only.</td>
+        </tr>
+        <tr>
+          <td class="td-key">KYM_CATEGORIES</td>
+          <td class="td-type">list</td>
+          <td class="td-default">["memes"]</td>
+          <td class="td-desc">KnowYourMeme category slugs to scrape each cycle. Multiple categories broaden the discovery surface.</td>
+        </tr>
+        <tr>
+          <td class="td-key">KYM_MAX_ENTRIES_PER_CATEGORY</td>
+          <td class="td-type">int</td>
+          <td class="td-default">10</td>
+          <td class="td-desc">Max entries fetched per category per cycle. Controls scrape depth and avoids processing stale content.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: API ── -->
+  <div class="doc-section" id="api">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,197,94,0.08);color:var(--green);">⊕</div>
+      <div class="sec-title" style="color:var(--green);">API ENDPOINTS</div>
+      <div class="sec-num">11</div>
+    </div>
+
+    <div class="sec-divider">DASHBOARD</div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/</span><span class="ep-tag">HTML</span></div>
+      <div class="ep-body"><div class="ep-desc">Serves the main dashboard HTML from <span style="color:var(--cyan);">pulse/web/dashboard.html</span>.</div></div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/docs</span><span class="ep-tag">HTML</span></div>
+      <div class="ep-body"><div class="ep-desc">Serves this documentation page.</div></div>
+    </div>
+
+    <div class="sec-divider">STATS</div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/api/stats</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Returns current launch statistics: total, today, SOL spent, success rate, n_ok, n_fail, dry_run flag.</div></div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/api/launches</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Returns the last 50 launch records as a JSON array, ordered by timestamp descending.</div></div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/api/pnl-history</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Returns <span style="color:var(--cyan);">{timestamps: [...], values: [...]}</span> — the DB snapshot history used to populate the PNL chart (up to 200 points).</div></div>
+    </div>
+
+    <div class="sec-divider">CONFIG</div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-get">GET</span><span class="ep-path">/api/config</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Returns current config values. <span style="color:var(--red);">SOLANA_PRIVATE_KEY</span> is returned as a boolean presence flag — the actual key is never sent.</div></div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-post">POST</span><span class="ep-path">/api/config</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Accepts a partial config object. Updates in-memory config and writes changed keys back to <span style="color:var(--cyan);">.env</span>. Takes effect on the next scan cycle.</div></div>
+    </div>
+
+    <div class="sec-divider">LAUNCH FLOW</div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-post">POST</span><span class="ep-path">/api/prepare-tx</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Builds an unsigned pump.fun create transaction for the browser to sign. Returns <span style="color:var(--cyan);">tx_b64</span>, <span style="color:var(--cyan);">mint_secret_b64</span>, <span style="color:var(--cyan);">mint_pubkey</span>, <span style="color:var(--cyan);">metadata_uri</span>. In DRY_RUN mode returns a fake payload for UI testing.</div></div>
+    </div>
+    <div class="endpoint">
+      <div class="ep-head"><span class="ep-method ep-post">POST</span><span class="ep-path">/api/confirm-launch</span><span class="ep-tag">JSON</span></div>
+      <div class="ep-body"><div class="ep-desc">Records a completed browser-sign launch. Accepts name, ticker, mint_pubkey, tx_sig, sol_spent, dry_run. Inserts DB record, snapshots count, broadcasts exec + log events.</div></div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: WEBSOCKET ── -->
+  <div class="doc-section" id="websocket">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(34,211,238,0.08);color:var(--cyan);">⟳</div>
+      <div class="sec-title" style="color:var(--cyan);">WEBSOCKET EVENTS</div>
+      <div class="sec-num">12</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;">Connect to <span style="color:var(--cyan);">ws://localhost:8000/ws</span>. On connect the server immediately sends an <span style="color:var(--white);">init</span> payload with full history, then streams live events.</p>
+    <table class="doc-table">
+      <thead><tr><th>TYPE</th><th>DIRECTION</th><th>PAYLOAD KEYS</th><th>DESCRIPTION</th></tr></thead>
+      <tbody>
+        <tr><td class="td-key">init</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">stats, pnl_history, trades, log_history</td><td class="td-desc">Sent once on connect. Full state snapshot to hydrate a fresh browser tab.</td></tr>
+        <tr><td class="td-key">log</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">level, msg, ts</td><td class="td-desc">Single log entry. Append to the Execution Log panel.</td></tr>
+        <tr><td class="td-key">exec</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">tag, city, detail, ts</td><td class="td-desc">Execution event for the exec log strip. Tags: LAUNCH, DRY, FAILED, SCAN, SYSTEM.</td></tr>
+        <tr><td class="td-key">stats</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">total_launches, today_launches, sol_spent, success_rate, …</td><td class="td-desc">Full stats object. Refresh all metric cells in the dashboard.</td></tr>
+        <tr><td class="td-key">pnl_history</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">values, timestamps</td><td class="td-desc">Updated chart data arrays. Re-render the PNL chart with latest snapshot history.</td></tr>
+        <tr><td class="td-key">trade</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">trade</td><td class="td-desc">Single launch record object. Prepend to the Recent Launches table.</td></tr>
+        <tr><td class="td-key">launch_request</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">meme</td><td class="td-desc">Browser-sign mode only. Signals the dashboard to invoke wallet signing for the included meme object.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SECTION: WALLET ── -->
+  <div class="doc-section" id="wallet">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">◈</div>
+      <div class="sec-title" style="color:var(--purple);">WALLET SIGN FLOW</div>
+      <div class="sec-num">13</div>
+    </div>
+    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
+      Browser-sign mode allows launching without storing a private key on the server. The bot prepares transactions; the browser wallet signs them.
+    </p>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">1</div>
+          <div class="flow-vline" style="background:linear-gradient(var(--purple2),var(--purple2));opacity:0.3;"></div>
+        </div>
+        <div class="flow-body">
+          <div class="flow-title">Meme Detected</div>
+          <div class="flow-desc">Bot completes a KYM scrape cycle and identifies one or more new meme candidates that pass the scorer.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">2</div>
+          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
+        </div>
+        <div class="flow-body">
+          <div class="flow-title">Prepare Transaction</div>
+          <div class="flow-desc">Server calls <em>POST /api/prepare-tx</em> internally, building an unsigned pump.fun create transaction. Returns <em>tx_b64</em>, <em>mint_secret_b64</em>, and <em>metadata_uri</em>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">3</div>
+          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
+        </div>
+        <div class="flow-body">
+          <div class="flow-title">Broadcast launch_request</div>
+          <div class="flow-desc">A <em>launch_request</em> WebSocket event is pushed to all connected browser tabs containing the meme metadata and the unsigned transaction payload.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">4</div>
+          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
+        </div>
+        <div class="flow-body">
+          <div class="flow-title">Wallet Signs</div>
+          <div class="flow-desc">The connected Phantom or Solflare wallet prompts the user. On approval it signs the transaction and submits it to the configured Solana RPC endpoint.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-left">
+          <div class="flow-num" style="background:rgba(34,197,94,0.12);border:1px solid var(--green-dim);color:var(--green);">5</div>
+          <div class="flow-vline"></div>
+        </div>
+        <div class="flow-body">
+          <div class="flow-title">Confirm + Record</div>
+          <div class="flow-desc">Browser calls <em>POST /api/confirm-launch</em> with the tx signature. Server inserts the DB record, snapshots the count, and broadcasts <em>OK</em> log + exec events to all clients.</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout danger">
+      <span class="ci">⚠</span>
+      <span><strong>Never expose this dashboard to the public internet while a wallet is connected.</strong> The launch_request flow allows any browser tab to trigger wallet transactions on your behalf. Run behind localhost or a VPN only.</span>
+    </div>
+  </div>
+
+  <!-- ── SECTION: SAFETY ── -->
+  <div class="doc-section" id="safety">
+    <div class="sec-header">
+      <div class="sec-icon" style="background:rgba(239,68,68,0.08);color:var(--red);">⚠</div>
+      <div class="sec-title" style="color:var(--red);">SAFETY</div>
+      <div class="sec-num">14</div>
+    </div>
+    <div class="safety-grid">
+      <div class="safety-card" style="border-top:2px solid var(--red);">
+        <div class="sc-head"><span class="sc-icon">🔑</span><span class="sc-title" style="color:var(--red);">KEY SECURITY</span></div>
+        <div class="sc-desc">Store <span style="color:var(--cyan);">SOLANA_PRIVATE_KEY</span> only in <span style="color:var(--cyan);">.env</span>. Never commit <span style="color:var(--cyan);">.env</span> to version control. The API intentionally never returns the key value — only a boolean presence flag.</div>
+      </div>
+      <div class="safety-card" style="border-top:2px solid var(--yellow);">
+        <div class="sc-head"><span class="sc-icon">🧪</span><span class="sc-title" style="color:var(--yellow);">DRY RUN FIRST</span></div>
+        <div class="sc-desc">Always validate the full pipeline with <span style="color:var(--yellow);">DRY_RUN=true</span> before going live. Confirm memes are discovered, scored, and logged correctly. Verify the scan interval and cycle counts look right.</div>
+      </div>
+      <div class="safety-card" style="border-top:2px solid var(--purple);">
+        <div class="sc-head"><span class="sc-icon">⚡</span><span class="sc-title" style="color:var(--purple);">RATE LIMITS</span></div>
+        <div class="sc-desc">Keep <span style="color:var(--cyan);">SCAN_INTERVAL_SECONDS</span> ≥ 120 to avoid hammering KnowYourMeme. Use a dedicated Solana RPC node in production to avoid public endpoint rate limits affecting transaction reliability.</div>
+      </div>
+      <div class="safety-card" style="border-top:2px solid var(--cyan);">
+        <div class="sc-head"><span class="sc-icon">🌐</span><span class="sc-title" style="color:var(--cyan);">NETWORK EXPOSURE</span></div>
+        <div class="sc-desc">The dashboard runs on <span style="color:var(--cyan);">0.0.0.0:8000</span> by default — accessible on your local network. Never forward this port publicly. Use a reverse proxy with authentication if remote access is needed.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── Sidebar active link on scroll ──
+const sections = document.querySelectorAll('.doc-section[id], #hero[id]');
+const sideLinks = document.querySelectorAll('.sb-link');
+function updateSidebar() {
+  let current = 'intro';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  sideLinks.forEach(l => {
+    const active = l.getAttribute('href') === '#' + current;
+    l.classList.toggle('active', active);
+  });
+}
+window.addEventListener('scroll', updateSidebar, { passive: true });
+updateSidebar();
+
+// ── Animated ticker in hero ──
+const TICKER_LINES = [
+  { tag: 'SYSTEM', cls: 'tl-system', msg: 'TYRANT//BOT initializing...' },
+  { tag: 'SYSTEM', cls: 'tl-system', msg: 'Mode: DRY RUN · Interval: 300s' },
+  { tag: 'SCAN',   cls: 'tl-scan',   msg: 'Scan #1 — scraping KYM...' },
+  { tag: 'INFO',   cls: 'tl-info',   msg: '→ 3 new entries found' },
+  { tag: 'INFO',   cls: 'tl-info',   msg: '→ Launching: Skibidi Toilet (SKIB)' },
+  { tag: 'OK',     cls: 'tl-ok',     msg: '✓ Launched SKIB mint=3xFaK8p2' },
+  { tag: 'INFO',   cls: 'tl-info',   msg: '→ Launching: NPC Face (NPC)' },
+  { tag: 'OK',     cls: 'tl-ok',     msg: '✓ Launched NPC mint=9mBzQ1r4' },
+  { tag: 'SCAN',   cls: 'tl-scan',   msg: 'Cycle #1 — next scan in 300s' },
+  { tag: 'SCAN',   cls: 'tl-scan',   msg: 'Scan #2 — scraping KYM...' },
+  { tag: 'INFO',   cls: 'tl-info',   msg: 'No new memes found this cycle' },
+  { tag: 'SCAN',   cls: 'tl-scan',   msg: 'Cycle #2 — next scan in 300s' },
+];
+const tickerBody = document.getElementById('ticker-body');
+let tickerIdx = 0;
+let tickerLines = [];
+function addTickerLine() {
+  const entry = TICKER_LINES[tickerIdx % TICKER_LINES.length];
+  tickerIdx++;
+  const now = new Date();
+  const ts = now.getHours().toString().padStart(2,'0') + ':' +
+             now.getMinutes().toString().padStart(2,'0') + ':' +
+             now.getSeconds().toString().padStart(2,'0');
+  const el = document.createElement('div');
+  el.className = 'ticker-line';
+  el.innerHTML = `<span class="tl-ts">${ts}</span><span class="tl-tag ${entry.cls}">${entry.tag}</span><span class="tl-msg">${entry.msg}</span>`;
+  tickerLines.push(el);
+  tickerBody.appendChild(el);
+  if (tickerLines.length > 12) {
+    tickerLines[0].style.transition = 'opacity 0.3s';
+    tickerLines[0].style.opacity = '0';
+    setTimeout(() => { if(tickerLines[0]) tickerLines[0].remove(); tickerLines.shift(); }, 300);
+  }
+}
+addTickerLine();
+setInterval(addTickerLine, 1400);
+</script>
+</body>
+</html>

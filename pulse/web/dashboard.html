@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TYRANT//BOT</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<!-- Solana web3.js for transaction handling -->
+<script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
+<script>window.Buffer = window.Buffer || buffer.Buffer;</script>
+<script src="https://unpkg.com/@solana/web3.js@1.98.2/lib/index.iife.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg:        #0a0a0f;
+    --bg2:       #05050a;
+    --bg3:       #0d0d18;
+    --border:    #1a1a2e;
+    --green:     #22c55e;
+    --green-dim: #166534;
+    --red:       #ef4444;
+    --red-dim:   #7f1d1d;
+    --cyan:      #22d3ee;
+    --cyan-dim:  #164e63;
+    --purple:    #a855f7;
+    --purple2:   #7c3aed;
+    --yellow:    #eab308;
+    --blue:      #3b82f6;
+    --white:     #e2e8f0;
+    --dim:       #475569;
+    --magenta:   #e879f9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--white);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 12px;
+    padding-bottom: 30px;
+    box-sizing: border-box;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--purple2);
+    flex-shrink: 0;
+    height: 36px;
+  }
+  #header .logo { color: var(--purple); font-weight: 700; font-size: 14px; letter-spacing: 2px; }
+  #header .logo span { color: var(--cyan); }
+  .sep { color: var(--border); }
+  #clock { color: var(--cyan); font-size: 11px; }
+  #uptime { color: var(--dim); font-size: 11px; }
+  #mode-badge {
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .mode-dry  { background: rgba(234,179,8,0.15);  color: var(--yellow); border: 1px solid var(--yellow); }
+  .mode-live { background: rgba(34,197,94,0.15);  color: var(--green);  border: 1px solid var(--green); }
+  #scan-status { color: var(--cyan); font-size: 11px; }
+
+  /* Wallet connect button */
+  #wallet-btn {
+    margin-left: auto;
+    padding: 3px 14px;
+    background: rgba(168,85,247,0.15);
+    color: var(--purple);
+    border: 1px solid var(--purple2);
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  #wallet-btn:hover { background: rgba(168,85,247,0.3); }
+  #wallet-btn.connected {
+    background: rgba(34,197,94,0.15);
+    color: var(--green);
+    border-color: var(--green);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #strategy-link {
+    color: var(--dim);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+  }
+  #strategy-link::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -2px;
+    width: 0; height: 1px;
+    background: var(--purple);
+    transition: width 0.25s ease;
+  }
+  #strategy-link:hover { color: var(--purple); }
+  #strategy-link:hover::after { width: 100%; }
+
+  /* ── BANNER ── */
+  #pnl-banner {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    height: 46px;
+    overflow: hidden;
+  }
+  .pnl-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 22px;
+    position: relative;
+    white-space: nowrap;
+  }
+  .pnl-item::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 20%; bottom: 20%;
+    width: 1px;
+    background: var(--border);
+  }
+  .pnl-item:last-child::after { display: none; }
+  .pnl-label { color: var(--cyan); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.7; }
+  .pnl-value { font-size: 15px; font-weight: 700; }
+  .pnl-value.pos     { color: var(--green);  }
+  .pnl-value.neg     { color: var(--red);    }
+  .pnl-value.neu     { color: var(--white);  }
+  .pnl-value.cyan    { color: var(--cyan);   }
+  .pnl-value.magenta { color: var(--magenta);}
+  /* CIRCUIT badge */
+  .circuit-badge {
+    display: flex; align-items: center; gap: 5px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  }
+  .circuit-closed { background: rgba(34,197,94,0.12); border: 1px solid var(--green-dim); color: var(--green); }
+  .circuit-open   { background: rgba(239,68,68,0.12);  border: 1px solid var(--red-dim);   color: var(--red);   }
+  .circuit-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .circuit-closed .circuit-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .circuit-open   .circuit-dot { background: var(--red);   box-shadow: 0 0 5px var(--red);  animation: blink 1s infinite; }
+
+  /* ── MAIN GRID ── */
+  #main {
+    display: grid;
+    grid-template-columns: 26% 1fr 26%;
+    grid-template-rows: 1fr;
+    flex: 1;
+    gap: 4px;
+    padding: 4px;
+    min-height: 0;
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .panel-title {
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    text-transform: uppercase;
+    background: rgba(34,211,238,0.03);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .panel-title.purple { color: var(--purple); border-color: var(--purple2); background: rgba(168,85,247,0.05); }
+  .panel-title.magenta { color: var(--magenta); }
+
+  /* ── CENTER COLUMN ── */
+  #center-col { display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+  #chart-panel { flex: 1; min-height: 0; }
+  #chart-wrap { flex: 1; padding: 8px; position: relative; min-height: 0; }
+  #chart-wrap canvas { max-height: 100%; }
+
+  /* ── LOG PANEL ── */
+  #log-inner {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-line { display: flex; gap: 6px; align-items: baseline; }
+  .log-ts   { color: var(--dim); flex-shrink: 0; font-size: 10px; }
+  .log-icon { flex-shrink: 0; width: 12px; }
+  .log-tag  { flex-shrink: 0; width: 52px; font-size: 10px; }
+  .log-msg  { color: var(--white); word-break: break-all; }
+  .lvl-INFO   { color: var(--cyan); }
+  .lvl-OK     { color: var(--green); }
+  .lvl-WARN   { color: var(--yellow); }
+  .lvl-ERROR  { color: var(--red); }
+  .lvl-SYSTEM { color: var(--blue); }
+  .lvl-SCAN   { color: var(--cyan); }
+
+  /* ── LAUNCH QUEUE (right panel) ── */
+  #queue-inner {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .queue-item {
+    border-bottom: 1px solid rgba(26,26,46,0.7);
+    padding: 6px 8px;
+    transition: background 0.15s;
+  }
+  .queue-item:hover { background: rgba(255,255,255,0.03); }
+  .queue-name { color: var(--white); font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .queue-meta { color: var(--dim); font-size: 9px; display: flex; gap: 8px; margin-bottom: 4px; }
+  .queue-ticker { color: var(--magenta); font-weight: 700; }
+  .queue-source { color: var(--cyan); }
+  .queue-actions { display: flex; gap: 6px; }
+  .btn-launch {
+    padding: 2px 10px;
+    background: rgba(168,85,247,0.15);
+    color: var(--purple);
+    border: 1px solid var(--purple2);
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-launch:hover { background: rgba(168,85,247,0.35); }
+  .btn-launch:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-skip {
+    padding: 2px 8px;
+    background: transparent;
+    color: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 9px;
+    cursor: pointer;
+  }
+  .btn-skip:hover { color: var(--red); border-color: var(--red); }
+  .queue-status {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 1px 6px;
+    border-radius: 2px;
+  }
+  .qs-launched { color: var(--green); background: rgba(34,197,94,0.1); border: 1px solid var(--green-dim); }
+  .qs-dry     { color: var(--yellow); background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); }
+  .qs-failed  { color: var(--red);   background: rgba(239,68,68,0.1);  border: 1px solid var(--red-dim); }
+  .qs-signing { color: var(--magenta); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.4; } }
+
+  #launches-inner {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
+  table col.col-name   { width: 30%; }
+  table col.col-ticker { width: 18%; }
+  table col.col-mcap   { width: 14%; }
+  table col.col-status { width: 16%; }
+  table col.col-time   { width: 16%; }
+  table col.col-link   { width: 6%; }
+  thead th {
+    padding: 4px 6px;
+    color: var(--cyan);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+    background: rgba(34,211,238,0.03);
+    position: sticky; top: 0;
+  }
+  tbody tr { border-bottom: 1px solid rgba(26,26,46,0.6); }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody td { padding: 10px 6px; }
+  .td-name   { color: var(--white); font-weight: 600; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-ticker { color: var(--white); }
+  .row-link-btn { color: var(--dim); line-height: 0; display: inline-block; transition: color 0.15s; }
+  .row-link-btn:hover { color: var(--cyan); }
+  .st-dead    { color: #ef4444; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+  .st-running { color: #22c55e; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+  .st-gigarun { color: #f59e0b; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; }
+  .st-LAUNCHED { color: var(--green); }
+  .st-DRY_RUN  { color: var(--yellow); }
+  .st-FAILED   { color: var(--red); }
+
+  /* ── BOTTOM ROW ── */
+  #bottom-row {
+    display: grid;
+    grid-template-columns: 26% 1fr 26%;
+    gap: 4px;
+    padding: 0 4px 4px;
+    height: 210px;
+    flex-shrink: 0;
+  }
+
+  /* ── STATS PANEL ── */
+  #stats-panel-inner {
+    flex: 1;
+    min-height: 0;
+    padding: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 4px;
+    overflow: hidden;
+  }
+  .stat-cell {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 0;
+    overflow: hidden;
+    transition: background 0.2s;
+    cursor: default;
+  }
+  .stat-cell:hover { background: #14142a; }
+  .stat-value { font-size: 16px; font-weight: 700; line-height: 1; }
+  .stat-label { color: var(--dim); font-size: 8px; letter-spacing: 1px; text-transform: uppercase; margin-top: 6px; }
+  .stat-green   { color: var(--green);   text-shadow: 0 0 8px rgba(34,197,94,0.4); }
+  .stat-red     { color: var(--red);     text-shadow: 0 0 8px rgba(239,68,68,0.4); }
+  .stat-cyan    { color: var(--cyan);    text-shadow: 0 0 8px rgba(34,211,238,0.4); }
+  .stat-yellow  { color: var(--yellow);  text-shadow: 0 0 8px rgba(234,179,8,0.4); }
+  .stat-white   { color: var(--white); }
+  .stat-purple  { color: var(--purple);  text-shadow: 0 0 8px rgba(168,85,247,0.4); }
+  .stat-magenta { color: var(--magenta); text-shadow: 0 0 8px rgba(232,121,249,0.4); }
+
+  /* ── EXEC LOG ── */
+  #exec-inner {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 8px;
+    font-size: 11px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .exec-line { display: flex; gap: 8px; align-items: baseline; line-height: 1.7; }
+  .exec-ts   { color: var(--dim); font-size: 10px; flex-shrink: 0; }
+  .exec-tag  { flex-shrink: 0; width: 72px; font-size: 10px; font-weight: 700; }
+  .exec-src  { color: var(--white); flex-shrink: 0; width: 90px; }
+  .exec-detail { color: var(--dim); }
+  .tag-LAUNCH  { color: var(--purple); }
+  .tag-DRY     { color: var(--yellow); }
+  .tag-FAILED  { color: var(--red); }
+  .tag-SCAN    { color: var(--cyan); }
+  .tag-SYSTEM  { color: var(--blue); }
+  .tag-OK      { color: var(--green); }
+  .tag-ERROR   { color: var(--red); }
+  .tag-INFO    { color: var(--cyan); }
+  .tag-WARN    { color: var(--yellow); }
+
+  /* ── SOURCE HEATMAP ── */
+  #heatmap-inner {
+    flex: 1;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+  }
+  .heat-source {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .heat-label { font-size: 9px; width: 64px; flex-shrink: 0; letter-spacing: 1px; }
+  .heat-bar {
+    flex: 1;
+    height: 10px;
+    border-radius: 1px;
+    background: var(--bg3);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .heat-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+  }
+  .heat-fill.confirmed  { background: linear-gradient(90deg, var(--green-dim), var(--green)); }
+  .heat-fill.submission { background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)); }
+  .heat-fill.newsworthy { background: linear-gradient(90deg, #713f12, var(--yellow)); }
+  .heat-fill.deadpool   { background: linear-gradient(90deg, var(--red-dim), var(--red)); }
+  .heat-count { font-size: 9px; color: var(--dim); width: 20px; text-align: right; flex-shrink: 0; }
+
+  /* ── LEFT COLUMN WRAP ── */
+  #left-col-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+  }
+
+  /* ── ALPHA PANEL ── */
+  #alpha-panel { display: flex; flex-direction: column; }
+  #alpha-inner { flex: 1; min-height: 0; overflow: hidden; padding: 7px 10px; display: flex; flex-direction: column; justify-content: space-evenly; gap: 0; }
+
+  /* Kelly Gauge */
+  .kelly-widget { display: flex; flex-direction: column; gap: 6px; }
+  .kelly-header { display: flex; justify-content: space-between; align-items: center; }
+  .kelly-title { font-size: 11px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; }
+  .kelly-f { font-size: 12px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; }
+  .kelly-bar-wrap { position: relative; height: 19px; border-radius: 2px; overflow: hidden;
+    background: linear-gradient(90deg, #7c3aed 0%, #22c55e 40%, #22c55e 60%, #7c3aed 100%); }
+  .kelly-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff;
+    border-radius: 1px; transform: translateX(-50%); box-shadow: 0 0 4px #fff8; }
+  .kelly-labels { display: flex; justify-content: space-between; }
+  .kelly-lbl { font-size: 10px; color: var(--dim); letter-spacing: 1px; }
+  .kelly-optimal { position: absolute; left: 50%; transform: translateX(-50%);
+    font-size: 10px; font-weight: 700; color: #1e1b4b; letter-spacing: 1px; line-height: 19px; }
+
+  /* Scan Clock */
+  .scan-clock-widget { display: flex; flex-direction: column; gap: 3px; }
+  .scan-clock-header { display: flex; justify-content: space-between; align-items: center; }
+  .scan-clock-title { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; }
+  .scan-clock-status { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--cyan); }
+  .scan-clock-body { display: flex; align-items: baseline; gap: 5px; }
+  .scan-clock-time { font-size: 22px; font-weight: 700; color: var(--white); line-height: 1; font-variant-numeric: tabular-nums; }
+  .scan-clock-unit { font-size: 9px; color: var(--dim); letter-spacing: 1px; }
+  .scan-clock-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .scan-clock-bar { height: 100%; background: var(--cyan); border-radius: 2px; }
+
+  /* DNA Chart */
+  .dna-widget { display: flex; flex-direction: column; gap: 3px; }
+  .dna-title { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; }
+  #dna-canvas { display: block; border-radius: 3px; }
+
+  /* ── LAUNCH QUEUE MINI (left) ── */
+  #queue-mini-panel {
+    flex-shrink: 0;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  #queue-mini-inner {
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .qm-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(26,26,46,0.4);
+    font-size: 10px;
+  }
+  .qm-badge {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+  }
+  .qm-confirmed  { background: rgba(34,197,94,0.1);  color: var(--green);   border: 1px solid var(--green-dim); }
+  .qm-submission { background: rgba(34,211,238,0.08); color: var(--cyan);    border: 1px solid var(--cyan-dim); }
+  .qm-newsworthy { background: rgba(234,179,8,0.1);  color: var(--yellow);  border: 1px solid rgba(234,179,8,0.3); }
+  .qm-deadpool   { background: rgba(239,68,68,0.1);  color: var(--red);     border: 1px solid var(--red-dim); }
+  .qm-name { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .qm-ticker { color: var(--magenta); font-weight: 700; flex-shrink: 0; font-size: 9px; }
+  .qm-sign-btn {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 8px;
+    background: rgba(168,85,247,0.2);
+    color: var(--purple);
+    border: 1px solid var(--purple2);
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+    transition: background 0.15s;
+  }
+  .qm-sign-btn:hover { background: rgba(168,85,247,0.4); }
+  .qm-sign-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* ── NETWORK VISUALIZATION ── */
+  #net-gauge-wrap { padding: 5px 8px 2px; flex-shrink: 0; }
+  #net-gauge-label { font-size: 9px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 3px; }
+  #net-gauge-val   { color: var(--white); }
+  #net-gauge-track {
+    height: 7px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 1px; overflow: hidden; position: relative;
+  }
+  #net-gauge-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+    transition: width 0.5s ease;
+    box-shadow: 0 0 6px rgba(34,211,238,0.5);
+  }
+  #net-gauge-ticks {
+    display: flex; justify-content: space-between;
+    font-size: 7px; color: var(--dim); margin-top: 2px; letter-spacing: 0.5px;
+  }
+  #net-label-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px 2px; font-size: 10px; letter-spacing: 1px; flex-shrink: 0;
+  }
+  #pending-count {
+    font-size: 11px; font-weight: 700;
+    transition: color 0.2s;
+  }
+  #net-count { color: var(--cyan); font-size: 14px; font-weight: 700; margin-left: auto; }
+  #networkCanvas { flex: 1; min-height: 0; display: block; width: 100%; }
+
+  /* Sign queue section in right panel */
+  #sign-section { flex-shrink: 0; border-bottom: 1px solid var(--border); display: none; flex-direction: column; }
+  #sign-queue-inner {
+    max-height: 160px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+  }
+
+  /* ── STRATEGY MODAL ── */
+  #strategy-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 1000; backdrop-filter: blur(2px);
+  }
+  #strategy-modal {
+    display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 1020px; max-height: 86vh;
+    background: var(--bg2); border: 1px solid var(--purple2);
+    border-radius: 4px; z-index: 1001;
+    flex-direction: column; overflow: hidden;
+  }
+  #strategy-modal.open { display: flex; }
+  #strategy-overlay.open { display: block; }
+  .sm-header {
+    padding: 10px 16px; border-bottom: 1px solid var(--purple2);
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(124,58,237,0.08); flex-shrink: 0;
+  }
+  .sm-title { color: var(--purple); font-weight: 700; letter-spacing: 3px; font-size: 13px; }
+  .sm-close {
+    background: none; border: none; color: var(--dim); cursor: pointer;
+    font-size: 16px; font-family: inherit; line-height: 1; padding: 0 4px;
+  }
+  .sm-close:hover { color: var(--white); }
+  .sm-body { flex: 1; overflow-y: auto; padding: 14px 18px; scrollbar-width: none; }
+  .sm-body::-webkit-scrollbar { display: none; }
+  .sm-section {
+    font-size: 9px; letter-spacing: 2px; color: var(--cyan);
+    text-transform: uppercase; padding: 10px 0 6px;
+    border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .sm-section:first-child { padding-top: 0; }
+  .sm-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 10px; align-items: start; margin-bottom: 10px;
+  }
+  .sm-label { color: var(--white); font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .sm-desc { color: var(--dim); font-size: 10px; line-height: 1.4; margin-top: 1px; }
+  .sm-input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 2px;
+    color: var(--cyan); font-family: inherit; font-size: 12px; font-weight: 600;
+    padding: 4px 8px; width: 120px; text-align: right;
+    outline: none; transition: border-color 0.2s;
+  }
+  .sm-input:focus { border-color: var(--purple); }
+  .sm-toggle {
+    position: relative; width: 52px; height: 22px; cursor: pointer; flex-shrink: 0;
+  }
+  .sm-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .sm-slider {
+    position: absolute; inset: 0; border-radius: 2px;
+    background: var(--red-dim); border: 1px solid var(--red);
+    transition: all 0.2s; display: flex; align-items: center;
+    justify-content: center;
+    font-size: 9px; font-weight: 700; letter-spacing: 1px;
+    color: var(--red);
+  }
+  .sm-slider:after { content: 'OFF'; }
+  .sm-toggle input:checked + .sm-slider {
+    background: rgba(34,197,94,0.15); border-color: var(--green); color: var(--green);
+  }
+  .sm-toggle input:checked + .sm-slider:after { content: 'ON'; }
+  .sm-footer {
+    padding: 10px 18px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; align-items: center;
+    gap: 12px; flex-shrink: 0; background: rgba(0,0,0,0.2);
+  }
+  .sm-saved { color: var(--green); font-size: 10px; opacity: 0; transition: opacity 0.3s; }
+  .sm-cols { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .sm-left {
+    flex: 1; flex-shrink: 0; border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 16px 14px; scrollbar-width: none;
+  }
+  .sm-left::-webkit-scrollbar { display: none; }
+  .sm-right { flex: 1; overflow-y: auto; padding: 16px 20px; scrollbar-width: none; }
+  .sm-right::-webkit-scrollbar { display: none; }
+  .src-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 3px; padding: 11px 13px 11px 13px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto;
+    column-gap: 12px; row-gap: 4px; align-items: center;
+  }
+  .src-card-name { color: var(--white); font-size: 13px; font-weight: 700; grid-column:1; grid-row:1; }
+  .src-card-desc { color: var(--dim); font-size: 11px; line-height: 1.45; grid-column:1; grid-row:2; }
+  .src-card-toggle { grid-column:2; grid-row:1/3; align-self:center; }
+  .sm-param-row {
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 12px; align-items: start; margin-bottom: 12px;
+  }
+  .sm-param-label { color: var(--white); font-size: 12px; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 3px; }
+  .sm-param-desc { color: var(--dim); font-size: 11px; line-height: 1.45; }
+  .sm-right-section {
+    font-size: 10px; letter-spacing: 2px; color: var(--cyan); text-transform: uppercase;
+    padding: 10px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 12px;
+  }
+  .sm-right-section:first-child { padding-top: 0; }
+  .sm-right-section.risk { color: var(--purple); }
+  .sm-right-section.premium { color: #f59e0b; display: flex; align-items: center; gap: 6px; }
+  .sm-param-label.gold { color: #f59e0b; }
+  .sm-input.gold { border-color: #92400e; color: #f59e0b; }
+  .sm-input.gold:focus { border-color: #f59e0b; }
+  .sm-saved.show { opacity: 1; }
+  .sm-save-btn {
+    padding: 5px 20px; background: rgba(168,85,247,0.15);
+    color: var(--purple); border: 1px solid var(--purple2);
+    border-radius: 2px; font-family: inherit; font-size: 11px;
+    font-weight: 700; letter-spacing: 1px; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .sm-save-btn:hover { background: rgba(168,85,247,0.3); }
+
+  /* ── MISC ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .glow-cyan { text-shadow: 0 0 8px rgba(34,211,238,0.5); }
+  .pulse-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--cyan);
+    animation: pulse-anim 1.5s infinite; margin-right: 6px; vertical-align: middle;
+  }
+  @keyframes pulse-anim {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--cyan); }
+    50%       { opacity: 0.3; box-shadow: none; }
+  }
+  .pdot {
+    display: inline-block; width: 5px; height: 5px;
+    border-radius: 50%; flex-shrink: 0;
+  }
+  .pdot-cyan    { background: var(--cyan);    animation: pdot-c 2s ease-in-out infinite; }
+  .pdot-purple  { background: var(--purple);  animation: pdot-p 2s ease-in-out infinite; }
+  .pdot-magenta { background: var(--magenta); animation: pdot-m 2s ease-in-out infinite; }
+  @keyframes pdot-c {
+    0%, 100% { opacity: 1; box-shadow: 0 0 5px 1px var(--cyan), 0 0 10px var(--cyan); }
+    50%      { opacity: 0.2; box-shadow: none; }
+  }
+  @keyframes pdot-p {
+    0%, 100% { opacity: 1; box-shadow: 0 0 5px 1px var(--purple), 0 0 10px var(--purple); }
+    50%      { opacity: 0.2; box-shadow: none; }
+  }
+  @keyframes pdot-m {
+    0%, 100% { opacity: 1; box-shadow: 0 0 5px 1px var(--magenta), 0 0 10px var(--magenta); }
+    50%      { opacity: 0.2; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<div id="header">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="logo">TYRANT<span>//BOT</span></div>
+    <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--purple);border:1px solid var(--purple2);background:rgba(168,85,247,0.12);padding:2px 6px;border-radius:3px;">v1.0</span>
+  </div>
+  <span class="sep">│</span>
+  <span id="clock">--:--:-- UTC</span>
+  <span class="sep">│</span>
+  <span id="uptime">UP 00:00:00</span>
+  <span class="sep">│</span>
+  <span id="mode-badge" class="mode-dry">DRY RUN</span>
+  <span class="sep">│</span>
+  <span id="scan-status"><span class="pulse-dot"></span>INITIALIZING</span>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:20px;">
+    <span id="strategy-link" onclick="openStrategy()">SETTINGS</span>
+    <button id="wallet-btn" onclick="connectWallet()">CONNECT WALLET</button>
+  </div>
+</div>
+
+<!-- ══ BANNER ═══════════════════════════════════════════════════════════ -->
+<div id="pnl-banner">
+  <div class="pnl-item">
+    <span class="pnl-label">TOTAL P&L</span>
+    <span id="total-launched" class="pnl-value pos">+$0.000</span>
+  </div>
+  <div class="pnl-item">
+    <span class="pnl-label">LAUNCHED TODAY</span>
+    <span id="today-launched" class="pnl-value pos">+$0.000</span>
+  </div>
+  <div class="pnl-item">
+    <span class="pnl-label">EQUITY</span>
+    <span id="sol-spent" class="pnl-value neu"><svg width="13" height="11" viewBox="0 0 397.7 311.7" style="vertical-align:middle;margin-right:3px;"><defs><linearGradient id="slg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9945FF"/><stop offset="50%" stop-color="#8752F3"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1z" fill="url(#slg)"/></svg><span id="sol-spent-val">0.0000</span></span>
+  </div>
+  <div class="pnl-item">
+    <span class="pnl-label">WIN RATE</span>
+    <span id="queue-count" class="pnl-value neg">0.0%</span>
+  </div>
+  <div class="pnl-item">
+    <span class="pnl-label">CIRCUIT</span>
+    <span id="circuit-badge" class="circuit-badge circuit-closed">
+      <span class="circuit-dot"></span><span id="circuit-text">CLOSED</span>
+    </span>
+  </div>
+</div>
+
+<!-- ══ MAIN GRID ════════════════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- LEFT: System log + queue mini -->
+  <div id="left-col-wrap">
+    <div class="panel" style="flex:1;min-height:0;">
+      <div class="panel-title"><span class="pdot pdot-cyan"></span>SYSTEM LOG</div>
+      <div id="log-inner"></div>
+    </div>
+
+    <!-- Network visualization panel -->
+    <div class="panel" id="queue-mini-panel">
+      <div class="panel-title"><span class="pdot pdot-magenta"></span>MEME NETWORK</div>
+      <canvas id="networkCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- CENTER: Chart -->
+  <div id="center-col">
+    <div class="panel" id="chart-panel">
+      <div class="panel-title purple"><span class="pdot pdot-purple"></span>PNL CHART</div>
+      <div id="chart-wrap" style="flex:1;padding:8px;min-height:0;">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Sign queue + Recent launches -->
+  <div class="panel" style="display:flex;flex-direction:column;">
+    <!-- Launch queue (auto-launching) -->
+    <div id="sign-section">
+      <div class="panel-title magenta" style="flex-shrink:0;"><span class="pdot pdot-magenta"></span>LAUNCH QUEUE <span id="sign-queue-count" style="margin-left:auto;color:var(--magenta);">0</span></div>
+      <div id="queue-mini-inner" class="sign-queue-inner"></div>
+    </div>
+    <!-- Recent launches -->
+    <div class="panel-title" style="flex-shrink:0;"><span class="pdot pdot-cyan"></span>RECENT LAUNCHES</div>
+    <div id="launches-inner" style="flex:1;min-height:0;overflow-y:auto;">
+      <table>
+        <colgroup>
+          <col class="col-name"><col class="col-ticker"><col class="col-mcap"><col class="col-status"><col class="col-time"><col class="col-link">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>NAME</th><th>TICKER</th><th>MCAP</th><th>STATUS</th><th>TIME</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="launches-body">
+          <tr><td colspan="5" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ BOTTOM ROW ═══════════════════════════════════════════════════════ -->
+<div id="bottom-row">
+
+  <!-- Alpha -->
+  <div class="panel" id="alpha-panel">
+    <div class="panel-title" style="color:var(--cyan);"><span class="pdot pdot-cyan"></span>ALPHA</div>
+    <div id="alpha-inner">
+
+      <!-- Kelly Gauge -->
+      <div class="kelly-widget">
+        <div class="kelly-header">
+          <span class="kelly-title">KELLY GAUGE</span>
+          <span class="kelly-f">F=<span id="kelly-f-val">0.000</span></span>
+        </div>
+        <div class="kelly-bar-wrap">
+          <span class="kelly-optimal">OPTIMAL</span>
+          <div class="kelly-cursor" id="kelly-cursor" style="left:50%;"></div>
+        </div>
+        <div class="kelly-labels">
+          <span class="kelly-lbl">OVER</span>
+          <span class="kelly-lbl">OVER</span>
+        </div>
+      </div>
+
+      <!-- Scan Clock -->
+      <div class="scan-clock-widget">
+        <div class="scan-clock-header">
+          <span class="scan-clock-title">NEXT SCAN</span>
+          <span class="scan-clock-status" id="scan-clock-status">IDLE</span>
+        </div>
+        <div class="scan-clock-body">
+          <span class="scan-clock-time" id="scan-clock-time">—:——</span>
+          <span class="scan-clock-unit">remaining</span>
+        </div>
+        <div class="scan-clock-bar-wrap">
+          <div class="scan-clock-bar" id="scan-clock-bar" style="width:100%"></div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- Execution log -->
+  <div class="panel">
+    <div class="panel-title" style="color:var(--purple)"><span class="pdot pdot-purple"></span>EXECUTION LOG</div>
+    <div id="exec-inner"></div>
+  </div>
+
+  <!-- Stats + Source heatmap -->
+  <div class="panel" style="display:flex;flex-direction:column;">
+    <div class="panel-title"><span class="pdot pdot-cyan"></span>LAUNCH METRICS</div>
+    <div id="stats-panel-inner">
+      <div class="stat-cell">
+        <span id="stat-total" class="stat-value stat-white">0</span>
+        <span class="stat-label">Total Launched</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-today" class="stat-value stat-white">0</span>
+        <span class="stat-label">Launched Today</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-scans" class="stat-value stat-white">#0</span>
+        <span class="stat-label">Scans</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-ok" class="stat-value stat-white">0</span>
+        <span class="stat-label">Successful</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-fail" class="stat-value stat-white">0</span>
+        <span class="stat-label">Failed</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-rate" class="stat-value stat-cyan">—</span>
+        <span class="stat-label">Success Rate</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-avg-alltime" class="stat-value stat-cyan">$0.00</span>
+        <span class="stat-label">Avg. Profit All Time</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-avg-today" class="stat-value stat-cyan">$0.00</span>
+        <span class="stat-label">Avg. Profit Today</span>
+      </div>
+      <div class="stat-cell" style="min-width:120px;">
+        <canvas id="metrics-histogram" width="120" height="36" style="display:block;border-radius:2px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ PK MODAL ══════════════════════════════════════════════════════════ -->
+<style>
+#pk-modal {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: rgba(0,0,0,0.85);
+  align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#pk-box {
+  position: relative;
+  background: #07080e;
+  border: 1px solid var(--purple2);
+  border-radius: 4px;
+  padding: 36px 36px 28px;
+  width: 460px; max-width: 95vw;
+  display: flex; flex-direction: column; gap: 18px;
+  box-shadow: 0 0 60px rgba(124,58,237,0.25), 0 0 120px rgba(124,58,237,0.08);
+  animation: pkSlideIn .18s ease;
+}
+@keyframes pkSlideIn {
+  from { opacity:0; transform: translateY(-12px) scale(.97); }
+  to   { opacity:1; transform: translateY(0)   scale(1);    }
+}
+/* corner accents */
+#pk-box::before, #pk-box::after {
+  content:''; position:absolute; width:14px; height:14px;
+  border-color: var(--purple); border-style: solid;
+}
+#pk-box::before { top:-1px; left:-1px; border-width:2px 0 0 2px; }
+#pk-box::after  { bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+#pk-title {
+  font-size: 15px; font-weight: 700; letter-spacing: .2em;
+  color: var(--purple);
+  display: flex; align-items: center; gap: 10px;
+}
+.pk-icon {
+  position: relative;
+  width: 38px; height: 38px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.pk-icon .pk-core {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(168,85,247,0.9) 0%, rgba(124,58,237,0.6) 60%, transparent 100%);
+  box-shadow: 0 0 10px rgba(168,85,247,0.8), 0 0 20px rgba(124,58,237,0.4);
+  z-index: 2; position: relative;
+  animation: pkCorePulse 2s ease-in-out infinite;
+}
+.pk-icon .pk-ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(168,85,247,0.6);
+  animation: pkRingOut 2s ease-out infinite;
+}
+.pk-icon .pk-ring:nth-child(2) { width: 28px; height: 28px; animation-delay: 0s; }
+.pk-icon .pk-ring:nth-child(3) { width: 38px; height: 38px; animation-delay: .5s; }
+.pk-icon .pk-ring:nth-child(4) { width: 28px; height: 28px; animation-delay: 1s; }
+@keyframes pkRingOut {
+  0%   { opacity: .8; transform: scale(.6); }
+  100% { opacity: 0;  transform: scale(1); }
+}
+@keyframes pkCorePulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(168,85,247,0.8), 0 0 20px rgba(124,58,237,0.4); }
+  50%       { box-shadow: 0 0 18px rgba(168,85,247,1),   0 0 36px rgba(124,58,237,0.7); }
+}
+#pk-subtitle {
+  font-size: 11px; color: var(--dim); line-height: 1.8;
+  border-left: 2px solid var(--purple2);
+  padding-left: 10px;
+}
+#pk-subtitle code { color: var(--cyan); font-family: inherit; }
+
+#pk-field-wrap {
+  position: relative;
+}
+#pk-input {
+  width: 100%; background: rgba(255,255,255,0.03);
+  border: 1px solid var(--purple2); border-radius: 3px;
+  color: var(--white); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; padding: 10px 38px 10px 12px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+  letter-spacing: .04em;
+}
+#pk-input:focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 2px rgba(168,85,247,0.15), 0 0 12px rgba(168,85,247,0.1);
+}
+#pk-input::placeholder { color: var(--dim); letter-spacing: 0; }
+#pk-eye {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  cursor: pointer; color: #3a3a5a; user-select: none;
+  transition: color .15s; line-height: 0;
+}
+#pk-eye:hover { color: var(--cyan); }
+
+#pk-error {
+  font-size: 9px; color: var(--red); min-height: 13px;
+  letter-spacing: .05em;
+}
+#pk-actions {
+  display: flex; gap: 10px; justify-content: flex-end; align-items: center;
+  margin-top: 4px;
+}
+#pk-cancel-btn {
+  background: transparent; border: 1px solid #1e1e30;
+  color: var(--dim); font-size: 11px; padding: 8px 22px;
+  cursor: pointer; border-radius: 3px; letter-spacing: .12em;
+  font-family: inherit; transition: border-color .15s, color .15s;
+}
+#pk-cancel-btn:hover { border-color: var(--dim); color: var(--white); }
+#pk-save-btn {
+  background: rgba(124,58,237,0.18); border: 1px solid var(--purple2);
+  color: var(--purple); font-size: 11px; padding: 8px 26px;
+  cursor: pointer; border-radius: 3px; letter-spacing: .12em;
+  font-family: inherit; font-weight: 700;
+  transition: background .15s, box-shadow .15s;
+  position: relative; overflow: hidden;
+}
+#pk-save-btn:hover {
+  background: rgba(124,58,237,0.32);
+  box-shadow: 0 0 14px rgba(124,58,237,0.3);
+}
+#pk-save-btn.loading { pointer-events: none; opacity: .6; }
+#pk-notice {
+  font-size: 10px; color: var(--dim); opacity: .75;
+  display: flex; align-items: center; gap: 6px;
+  letter-spacing: .06em;
+}
+#pk-notice::before { content:'🔒'; font-size:10px; }
+</style>
+
+<div id="pk-modal">
+  <div id="pk-box">
+    <div id="pk-title">
+      <div class="pk-icon">
+        <div class="pk-ring"></div>
+        <div class="pk-ring"></div>
+        <div class="pk-ring"></div>
+        <div class="pk-core"></div>
+      </div>
+      CONNECT WALLET
+    </div>
+    <div id="pk-subtitle">
+      Paste your Solana private key (<code>base58</code> or <code>[byte array]</code>).<br>
+      Stored in <code>.env</code> — never leaves this machine.
+    </div>
+    <div id="pk-field-wrap">
+      <input id="pk-input" type="password" placeholder="base58 private key or [1,2,3…64]"
+        onkeydown="if(event.key==='Enter')submitPk();if(event.key==='Escape')closePkModal();">
+      <span id="pk-eye" onclick="togglePkVisible()" title="Show/hide">
+        <svg id="pk-eye-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+          <line id="pk-eye-slash" x1="3" y1="3" x2="21" y2="21" stroke-width="1.8" style="display:none"/>
+        </svg>
+      </span>
+    </div>
+    <div id="pk-error"></div>
+    <div id="pk-actions">
+
+      <button id="pk-cancel-btn" onclick="closePkModal()">CANCEL</button>
+      <button id="pk-save-btn" onclick="submitPk()">SAVE &amp; CONNECT</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STRATEGY MODAL ════════════════════════════════════════════════════ -->
+<div id="strategy-overlay" onclick="closeStrategy()"></div>
+<div id="strategy-modal">
+  <div class="sm-header">
+    <span class="sm-title">⬡ SETTINGS</span>
+    <button class="sm-close" onclick="closeStrategy()">✕</button>
+  </div>
+  <div class="sm-cols">
+    <!-- ── LEFT: Data Sources ── -->
+    <div class="sm-left">
+      <div class="sm-right-section" style="padding-top:0;">DATA SOURCE</div>
+
+      <div class="src-card">
+        <span class="src-card-name">KYM Confirmed</span>
+        <label class="sm-toggle src-card-toggle">
+          <input type="checkbox" id="src-confirmed-tog" checked>
+          <span class="sm-slider"></span>
+        </label>
+        <span class="src-card-desc">KnowYourMeme · Confirmed memes · High signal, lower volume</span>
+      </div>
+
+      <div class="src-card">
+        <span class="src-card-name">KYM Submissions</span>
+        <label class="sm-toggle src-card-toggle">
+          <input type="checkbox" id="src-submission-tog" checked>
+          <span class="sm-slider"></span>
+        </label>
+        <span class="src-card-desc">KnowYourMeme · New submissions · Early signal, higher noise</span>
+      </div>
+
+      <div class="src-card">
+        <span class="src-card-name">KYM Newsworthy</span>
+        <label class="sm-toggle src-card-toggle">
+          <input type="checkbox" id="src-newsworthy-tog" checked>
+          <span class="sm-slider"></span>
+        </label>
+        <span class="src-card-desc">KnowYourMeme · Trending &amp; newsworthy entries</span>
+      </div>
+
+      <div class="src-card">
+        <span class="src-card-name">KYM Deadpool</span>
+        <label class="sm-toggle src-card-toggle">
+          <input type="checkbox" id="src-deadpool-tog" checked>
+          <span class="sm-slider"></span>
+        </label>
+        <span class="src-card-desc">KnowYourMeme · Dead / failed memes · Contrarian plays</span>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Trading Parameters ── -->
+    <div class="sm-right">
+      <div class="sm-right-section" style="padding-top:0;">TRADING PARAMETERS</div>
+
+      <div class="sm-param-row">
+        <div>
+          <div class="sm-param-label">PUMPFUN_INITIAL_BUY_SOL</div>
+          <div class="sm-param-desc">SOL amount for the initial dev buy when creating each token.</div>
+        </div>
+        <input class="sm-input" id="cfg-PUMPFUN_INITIAL_BUY_SOL" type="number" step="0.0001" min="0">
+      </div>
+
+      <div class="sm-param-row">
+        <div>
+          <div class="sm-param-label">PUMPFUN_PRIORITY_FEE</div>
+          <div class="sm-param-desc">Solana priority fee in SOL. Higher = faster transaction landing.</div>
+        </div>
+        <input class="sm-input" id="cfg-PUMPFUN_PRIORITY_FEE" type="number" step="0.0001" min="0">
+      </div>
+
+      <div class="sm-param-row">
+        <div>
+          <div class="sm-param-label">MAX_LAUNCHES_PER_CYCLE</div>
+          <div class="sm-param-desc">Maximum number of new memes to queue per scan cycle.</div>
+        </div>
+        <input class="sm-input" id="cfg-MAX_LAUNCHES_PER_CYCLE" type="number" step="1" min="1" max="20">
+      </div>
+
+      <div class="sm-right-section risk">RISK MANAGEMENT</div>
+
+      <div class="sm-param-row">
+        <div>
+          <div class="sm-param-label">DRY_RUN</div>
+          <div class="sm-param-desc">When ON, no real transactions are signed or submitted. Safe for testing.</div>
+        </div>
+        <label class="sm-toggle">
+          <input type="checkbox" id="tog-dryrun" onchange="toggleDryRun(this.checked)">
+          <span class="sm-slider"></span>
+        </label>
+      </div>
+
+      <div class="sm-right-section premium"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M2 19h20v2H2v-2zM3 7l4 7 5-9 5 9 4-7v9H3V7z"/></svg>PREMIUM</div>
+
+      <div class="sm-param-row">
+        <div>
+          <div class="sm-param-label gold">SCAN_INTERVAL_SECONDS</div>
+          <div class="sm-param-desc">How often to scrape KnowYourMeme for new entries, in seconds.</div>
+        </div>
+        <input class="sm-input gold" id="cfg-SCAN_INTERVAL_SECONDS" type="number" step="10" min="10">
+      </div>
+
+    </div>
+  </div>
+  <div class="sm-footer">
+    <span id="sm-saved" class="sm-saved">✓ SAVED</span>
+    <button class="sm-save-btn" onclick="saveStrategy()">SAVE</button>
+  </div>
+</div>
+
+<!-- ══ JAVASCRIPT ════════════════════════════════════════════════════════ -->
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const state = {
+  launchHistory: { timestamps: [], values: [] },
+  launches: [],
+  stats: {},
+  pendingQueue: [],          // memes waiting to be signed
+  walletPubkey: null,
+  startTime: Date.now(),
+  sourceActivity: { confirmed: 0, submission: 0, newsworthy: 0, deadpool: 0 },
+};
+
+const RPC_URL = 'https://api.mainnet-beta.solana.com'; // overridden by config
+
+// ── Chart ──────────────────────────────────────────────────────────────
+const cyberGridPlugin = {
+  id: 'cyberGrid',
+  beforeDraw(chart) {
+    const { ctx, chartArea: a } = chart;
+    if (!a) return;
+    const { left: l, right: r, top: t, bottom: b } = a;
+    const w = r - l, h = b - t;
+    ctx.save();
+    ctx.rect(l, t, w, h);
+    ctx.clip();
+    ctx.fillStyle = '#05050a';
+    ctx.fillRect(l, t, w, h);
+    const hLines = 10;
+    for (let i = 0; i <= hLines; i++) {
+      const y = t + (h / hLines) * i;
+      const grad = ctx.createLinearGradient(l, y, r, y);
+      grad.addColorStop(0,   'rgba(34,211,238,0)');
+      grad.addColorStop(0.5, 'rgba(34,211,238,0.13)');
+      grad.addColorStop(1,   'rgba(34,211,238,0)');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = i === 0 || i === hLines ? 0.8 : 0.4;
+      ctx.setLineDash(i % 2 === 0 ? [] : [4, 8]);
+      ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(r, y); ctx.stroke();
+    }
+    const vLines = 12;
+    ctx.setLineDash([]);
+    for (let i = 0; i <= vLines; i++) {
+      const x = l + (w / vLines) * i;
+      const grad = ctx.createLinearGradient(x, t, x, b);
+      grad.addColorStop(0,   'rgba(124,58,237,0)');
+      grad.addColorStop(0.5, 'rgba(124,58,237,0.10)');
+      grad.addColorStop(1,   'rgba(124,58,237,0)');
+      ctx.strokeStyle = grad; ctx.lineWidth = 0.4;
+      ctx.setLineDash([2, 12]);
+      ctx.beginPath(); ctx.moveTo(x, t); ctx.lineTo(x, b); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+    const rg = ctx.createRadialGradient(l+w*.5, t+h*.5, h*.1, l+w*.5, t+h*.5, Math.max(w,h)*.75);
+    rg.addColorStop(0, 'rgba(0,0,0,0)'); rg.addColorStop(0.7, 'rgba(0,0,0,0)'); rg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = rg; ctx.fillRect(l, t, w, h);
+    ctx.restore();
+  },
+  afterDraw(chart) {
+    const { ctx, chartArea: a, data } = chart;
+    if (!a || !data.datasets[0].data.length) return;
+    const ds = chart.getDatasetMeta(0);
+    if (!ds.data.length) return;
+    ctx.save();
+    ctx.rect(a.left, a.top, a.right-a.left, a.bottom-a.top);
+    ctx.clip();
+    ctx.shadowColor = data.datasets[0].borderColor;
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = data.datasets[0].borderColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ds.data.forEach((pt, i) => i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+Chart.register(cyberGridPlugin);
+
+const chartCtx = document.getElementById('equityChart').getContext('2d');
+const equityChart = new Chart(chartCtx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [{
+      label: 'Launches',
+      data: [],
+      borderColor: '#a855f7',
+      backgroundColor: 'rgba(168,85,247,0.06)',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: true,
+      tension: 0.35,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 500, easing: 'easeInOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(5,5,10,0.95)',
+        borderColor: '#7c3aed',
+        borderWidth: 1,
+        titleColor: '#22d3ee',
+        bodyColor: '#e2e8f0',
+        padding: 10,
+        callbacks: { label: ctx => ` ${ctx.parsed.y} launches` }
+      }
+    },
+    scales: {
+      x: {
+        display: true,
+        ticks: { color: '#2d4a5a', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 },
+        grid: { display: false },
+        border: { color: 'rgba(34,211,238,0.15)' },
+      },
+      y: {
+        display: true,
+        ticks: { color: '#2d4a5a', font: { family: 'JetBrains Mono', size: 9 }, callback: v => v },
+        grid: { display: false },
+        border: { color: 'rgba(124,58,237,0.15)' },
+      }
+    }
+  }
+});
+
+// ── Network particle animation ─────────────────────────────────────────
+const _netParticles = [];
+const NET_MAX = 55, NET_CONNECT = 58;
+
+function _makeParticle(w, h) {
+  return {
+    x: Math.random() * w, y: Math.random() * h,
+    vx: (Math.random() - 0.5) * 0.35,
+    vy: (Math.random() - 0.5) * 0.35,
+    r: Math.random() * 2 + 1.2,
+    color: Math.random() > 0.55 ? '#22d3ee' : '#e879f9',
+    alpha: Math.random() * 0.45 + 0.4,
+  };
+}
+
+function initNetwork() {
+  const canvas = document.getElementById('networkCanvas');
+  if (!canvas) return;
+  const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
+  resize();
+  window.addEventListener('resize', resize);
+  for (let i = 0; i < NET_MAX; i++) _netParticles.push(_makeParticle(canvas.width, canvas.height));
+  (function animate() {
+    const W = canvas.width, H = canvas.height;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < _netParticles.length; i++) {
+      for (let j = i + 1; j < _netParticles.length; j++) {
+        const dx = _netParticles[i].x - _netParticles[j].x;
+        const dy = _netParticles[i].y - _netParticles[j].y;
+        const d = Math.hypot(dx, dy);
+        if (d < NET_CONNECT) {
+          ctx.save();
+          ctx.globalAlpha = (1 - d / NET_CONNECT) * 0.22;
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(_netParticles[i].x, _netParticles[i].y);
+          ctx.lineTo(_netParticles[j].x, _netParticles[j].y);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+    _netParticles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color; ctx.fill();
+      ctx.restore();
+    });
+    requestAnimationFrame(animate);
+  })();
+}
+
+window.spawnNetworkParticle = function() {
+  const canvas = document.getElementById('networkCanvas');
+  if (!canvas) return;
+  const p = _makeParticle(canvas.width, canvas.height);
+  p.r = 2.8; p.alpha = 1;
+  _netParticles.push(p);
+  if (_netParticles.length > NET_MAX + 15) _netParticles.shift();
+};
+
+let _netMaxCycle = 10;
+function updateNetworkGauge() {
+  const pending = state.pendingQueue.filter(m => m._status === 'pending').length;
+  const ratio = Math.min(pending / Math.max(_netMaxCycle, 1), 1);
+  const fill = document.getElementById('net-gauge-fill');
+  const val  = document.getElementById('net-gauge-val');
+  const cnt  = document.getElementById('net-count');
+  if (fill) fill.style.width = (ratio * 100) + '%';
+  if (val)  val.textContent = `F=${pending}/${_netMaxCycle}`;
+  if (cnt)  cnt.textContent = pending;
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────
+let ws;
+let wsReconnectDelay = 1000;
+
+function connectWS() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => {
+    wsReconnectDelay = 1000;
+    addLog('WebSocket connected', 'OK');
+    document.getElementById('scan-status').innerHTML =
+      '<span class="pulse-dot"></span>CONNECTED';
+  };
+  ws.onclose = () => {
+    addLog('WebSocket disconnected — reconnecting…', 'WARN');
+    document.getElementById('scan-status').innerHTML =
+      '<span style="color:var(--red)">● OFFLINE</span>';
+    setTimeout(connectWS, wsReconnectDelay);
+    wsReconnectDelay = Math.min(wsReconnectDelay * 2, 15000);
+  };
+  ws.onerror = () => {};
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case 'init':
+      if (msg.pnl_history) updateChart(msg.pnl_history);
+      if (msg.trades)      renderLaunches(msg.trades);
+      if (msg.stats)       updateStats(msg.stats);
+      if (msg.log_history) msg.log_history.forEach(e => addLog(e.msg, e.level, e.ts));
+      break;
+    case 'log':       addLog(msg.msg, msg.level, msg.ts); break;
+    case 'stats':     updateStats(msg.stats); break;
+    case 'pnl_history':
+      updateChart({ values: msg.values || [], timestamps: msg.timestamps || [] });
+      break;
+    case 'exec':
+      addExecEntry(msg.tag, msg.city, msg.detail, msg.ts);
+      if ((msg.tag === 'LAUNCH' || msg.tag === 'DRY') && window.histAddLaunch) window.histAddLaunch();
+      break;
+    case 'trade':
+      state.launches.unshift(msg.trade);
+      if (state.launches.length > 50) state.launches.pop();
+      renderLaunches(state.launches);
+      break;
+    case 'launch_request':
+      enqueueMeme(msg.meme);
+      updateLastSignal(msg.meme);
+      break;
+  }
+}
+
+
+// ── Meme queue ─────────────────────────────────────────────────────────
+function enqueueMeme(meme) {
+  // Avoid duplicates
+  if (state.pendingQueue.some(m => m.meme_url === meme.meme_url)) return;
+  const idx = state.pendingQueue.length;
+  state.pendingQueue.push({ ...meme, _status: 'pending' });
+  renderQueueMini();
+  updateQueueCount();
+  addLog(`New meme queued: ${meme.name} (${meme.ticker}) [${meme.source}]`, 'SCAN');
+  if (window.spawnNetworkParticle) window.spawnNetworkParticle('system');
+}
+
+async function pollNetworkCongestion() {
+  const badge = document.getElementById('pending-count');
+  async function fetch_congestion() {
+    try {
+      const cfgResp = await fetch('/api/config').then(r => r.json());
+      const rpcUrl = cfgResp.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+      const resp = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getRecentPerformanceSamples', params: [1] }),
+      });
+      const data = await resp.json();
+      const sample = data?.result?.[0];
+      if (sample) {
+        const tps = sample.numTransactions / sample.samplePeriodSecs;
+        const score = Math.min(Math.round(tps / 30), 100);
+        badge.textContent = score;
+        badge.style.color = score < 30 ? 'var(--cyan)' : score < 60 ? 'var(--yellow)' : score < 85 ? 'var(--magenta)' : 'var(--red)';
+      }
+    } catch(e) {}
+    setTimeout(fetch_congestion, 6000);
+  }
+  fetch_congestion();
+}
+
+function updateQueueCount() {
+  const pending = state.pendingQueue.filter(m => m._status === 'pending').length;
+  document.getElementById('queue-count').textContent = `${pending} pending`;
+  const sqc = document.getElementById('sign-queue-count');
+  if (sqc) sqc.textContent = pending;
+  updateNetworkGauge();
+}
+
+function renderQueueMini() {
+  const el = document.getElementById('queue-mini-inner');
+  if (!el) return;
+  const signSection = document.getElementById('sign-section');
+  const items = state.pendingQueue.slice(-20).reverse();
+  if (!items.length) {
+    if (signSection) signSection.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  if (signSection) { signSection.style.display = 'flex'; signSection.style.flexDirection = 'column'; }
+  el.innerHTML = items.map((m, idx) => {
+    const realIdx = state.pendingQueue.indexOf(m);
+    const srcClass = `qm-${m.source}`;
+    const isPending = m._status === 'pending';
+    const isSigning = m._status === 'signing';
+    const isDone    = ['launched', 'dry_run', 'failed'].includes(m._status);
+    let actionHtml = '';
+    if (isPending) {
+      actionHtml = `<span style="color:var(--magenta);font-size:8px;animation:blink 1s infinite;">QUEUED</span>`;
+    } else if (isSigning) {
+      actionHtml = `<span style="color:var(--magenta);font-size:8px;animation:blink 1s infinite;">LAUNCHING…</span>`;
+    } else {
+      const col = m._status === 'launched' || m._status === 'dry_run' ? 'var(--green)' : 'var(--red)';
+      actionHtml = `<span style="color:${col};font-size:8px;font-weight:700;">${m._status.toUpperCase()}</span>`;
+    }
+    return `<div class="qm-row">
+      <span class="qm-badge ${srcClass}">${m.source.slice(0,4).toUpperCase()}</span>
+      <span class="qm-name" title="${escHtml(m.name)}">${escHtml(m.name)}</span>
+      <span class="qm-ticker">${escHtml(m.ticker)}</span>
+      ${actionHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── Wallet / PK modal ─────────────────────────────────────────────────
+function connectWallet() {
+  document.getElementById('pk-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('pk-input').focus(), 50);
+}
+
+function closePkModal() {
+  document.getElementById('pk-modal').style.display = 'none';
+  document.getElementById('pk-input').value = '';
+  document.getElementById('pk-error').textContent = '';
+}
+
+function togglePkVisible() {
+  const inp = document.getElementById('pk-input');
+  const slash = document.getElementById('pk-eye-slash');
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  slash.style.display = showing ? 'none' : 'block';
+}
+
+async function submitPk() {
+  const pk = document.getElementById('pk-input').value.trim();
+  if (!pk) return;
+  const errEl = document.getElementById('pk-error');
+  const saveBtn = document.getElementById('pk-save-btn');
+  errEl.textContent = '';
+  saveBtn.classList.add('loading');
+  saveBtn.textContent = 'SAVING…';
+  try {
+    const r = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ SOLANA_PRIVATE_KEY: pk }),
+    });
+    if (!r.ok) throw new Error(`Server ${r.status}`);
+    saveBtn.textContent = '✓ CONNECTED';
+    saveBtn.style.color = 'var(--green)';
+    saveBtn.style.borderColor = 'var(--green)';
+    const btn = document.getElementById('wallet-btn');
+    btn.textContent = 'WALLET ✓';
+    btn.classList.add('connected');
+    addLog('Wallet configured — bot will auto-launch on next cycle', 'OK');
+    setTimeout(closePkModal, 800);
+  } catch(e) {
+    errEl.textContent = '✗ ' + e.message;
+    saveBtn.classList.remove('loading');
+    saveBtn.textContent = 'SAVE & CONNECT';
+  }
+}
+
+// ── Log panel ──────────────────────────────────────────────────────────
+const MAX_LOG = 300;
+function addLog(msg, level = 'INFO', serverTs) {
+  if (level === 'SCAN' && msg.includes('next scan in')) {
+    resetScanClock(serverTs);
+    if (window.histCommitCycle) window.histCommitCycle();
+  }
+  const el = document.getElementById('log-inner');
+  const icons = { INFO:'•', OK:'✓', WARN:'⚠', ERROR:'✗', SYSTEM:'⬡', SCAN:'⟳' };
+  const d = serverTs ? new Date(serverTs * 1000) : new Date();
+  const ts = d.toISOString().slice(11, 19);
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `
+    <span class="log-ts">${ts}</span>
+    <span class="log-icon lvl-${level}">${icons[level]||'·'}</span>
+    <span class="log-tag lvl-${level}">[${level.padEnd(5)}]</span>
+    <span class="log-msg">${escHtml(msg)}</span>
+  `;
+  el.appendChild(div);
+  while (el.children.length > MAX_LOG) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Exec log ───────────────────────────────────────────────────────────
+function addExecEntry(tag, src, detail, ts) {
+  const el = document.getElementById('exec-inner');
+  const time = ts ? new Date(ts*1000).toLocaleTimeString('en-GB',{hour12:false}) : new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const div = document.createElement('div');
+  div.className = 'exec-line';
+  div.innerHTML = `
+    <span class="exec-ts">${time}</span>
+    <span class="exec-tag tag-${tag}">[${tag.padEnd(7)}]</span>
+    <span class="exec-src">${escHtml(src||'—')}</span>
+    <span class="exec-detail">${escHtml(detail||'')}</span>
+  `;
+  el.appendChild(div);
+  while (el.children.length > 200) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Chart ──────────────────────────────────────────────────────────────
+function updateChart(history) {
+  state.launchHistory = history;
+  const cumulative = (history.values || []).map(Number);
+  const ts = history.timestamps || [];
+
+  // convert cumulative → per-snapshot delta so the chart shows activity, not a boring ramp
+  const deltas = cumulative.map((v, i) => i === 0 ? v : Math.max(0, v - cumulative[i - 1]));
+
+  const labels = ts.map(t => {
+    if (!t || t < 1000) return ''; // skip index-based fake timestamps
+    const d = new Date(t * 1000);
+    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  });
+
+  equityChart.data.labels = labels;
+  equityChart.data.datasets[0].data = deltas;
+  equityChart.options.scales.y.min = 0;
+  equityChart.update('none');
+}
+
+// ── Launches table ─────────────────────────────────────────────────────
+function renderLaunches(launches) {
+  state.launches = launches;
+  const tbody = document.getElementById('launches-body');
+  if (!launches.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>';
+    return;
+  }
+  const srcColors = { confirmed:'var(--green)', submission:'var(--cyan)', newsworthy:'var(--yellow)', deadpool:'var(--red)' };
+  tbody.innerHTML = launches.slice(0, 20).map(l => {
+    const stClass = l.status === 'FAILED' ? 'st-dead' : 'st-running';
+    const stLabel = l.status === 'FAILED' ? 'DEAD' : 'RUNNING';
+    const pumpUrl = l.mint_address && !l.mint_address.startsWith('DRY') ? `https://pump.fun/coin/${l.mint_address}` : (l.meme_url || '#');
+    return `<tr>
+      <td class="td-name" title="${escHtml(l.name)}">${escHtml(l.name.slice(0,16))}</td>
+      <td class="td-ticker">${escHtml(l.ticker)}</td>
+      <td style="color:var(--cyan);font-size:9px;">—</td>
+      <td class="${stClass}">${stLabel}</td>
+      <td style="color:var(--dim);font-size:10px;">${timeAgo(l.timestamp)}</td>
+      <td style="text-align:center;"><a href="${pumpUrl}" target="_blank" title="Open" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────
+function updateStats(s) {
+  state.stats = s;
+
+  const sol = s.sol_spent || 0;
+  const rate = (s.success_rate || 0) * 100;
+  const today = s.today_launches || 0;
+
+  // Banner
+  const pnlEl = document.getElementById('total-launched');
+  pnlEl.textContent = (sol > 0 ? '-' : '+') + '$' + sol.toFixed(3);
+  pnlEl.className = 'pnl-value ' + (sol > 0 ? 'neg' : 'pos');
+
+  const todayEl = document.getElementById('today-launched');
+  todayEl.textContent = (today > 0 ? '+' : '') + '$' + today.toFixed(3);
+  todayEl.className = 'pnl-value ' + (today > 0 ? 'pos' : 'neu');
+
+  document.getElementById('sol-spent-val').textContent = sol.toFixed(4);
+
+  const wrEl = document.getElementById('queue-count');
+  wrEl.textContent = rate.toFixed(1) + '%';
+  wrEl.className = 'pnl-value ' + (rate >= 80 ? 'pos' : rate >= 50 ? 'cyan' : 'neg');
+
+  // Circuit badge — CLOSED = dry run (safe), OPEN = live
+  const badge = document.getElementById('circuit-badge');
+  const circuitText = document.getElementById('circuit-text');
+  if (s.dry_run) {
+    badge.className = 'circuit-badge circuit-closed';
+    circuitText.textContent = 'CLOSED';
+  } else {
+    badge.className = 'circuit-badge circuit-open';
+    circuitText.textContent = 'OPEN';
+  }
+
+  // Stats panel
+  document.getElementById('stat-total').textContent = s.total_launches || 0;
+  document.getElementById('stat-today').textContent = today;
+  document.getElementById('stat-ok').textContent = s.n_ok || 0;
+
+  const fail = s.n_fail || 0;
+  const failEl = document.getElementById('stat-fail');
+  failEl.textContent = fail;
+  failEl.className = 'stat-value stat-white';
+
+  const rateEl = document.getElementById('stat-rate');
+  rateEl.textContent = rate.toFixed(1) + '%';
+  rateEl.className = `stat-value ${rate >= 80 ? 'stat-green' : 'stat-yellow'}`;
+
+  const mb = document.getElementById('mode-badge');
+  mb.textContent = s.dry_run ? 'DRY RUN' : '● LIVE';
+  mb.className = s.dry_run ? 'mode-dry' : 'mode-live';
+
+  // Scan count
+  if (s.scan_count !== undefined)
+    document.getElementById('stat-scans').textContent = '#' + s.scan_count;
+
+  // Avg profit (sol_spent proxy — negative = cost, shown as $)
+  const total = s.total_launches || 0;
+  const todayCount = s.today_launches || 0;
+  const avgAll = total > 0 ? (sol / total) : 0;
+  const avgToday = todayCount > 0 ? (sol / todayCount) : 0;
+  document.getElementById('stat-avg-alltime').textContent = '$' + avgAll.toFixed(3);
+  document.getElementById('stat-avg-today').textContent   = '$' + avgToday.toFixed(3);
+
+  // ── Kelly Gauge ──────────────────────────────────────────────────────
+  const winRate = s.success_rate || 0;
+  const lossRate = 1 - winRate;
+  const avgWin = avgAll > 0 ? avgAll : 0.001;
+  const kellyF = lossRate > 0 ? Math.max(0, (winRate / lossRate) - (lossRate / (winRate * avgWin + 0.001))) : 0;
+  const kellyFClamped = Math.min(kellyF, 1);
+  document.getElementById('kelly-f-val').textContent = kellyFClamped.toFixed(3);
+  // Map 0→1 kelly fraction to cursor position; store as target for live animation
+  window._kellyTarget = Math.min(100, Math.max(0, kellyFClamped * 50 + 25));
+
+  // ── Capital Velocity ─────────────────────────────────────────────────
+  const scanCount = s.scan_count || 0;
+  const solPerCycle = scanCount > 0 ? sol / scanCount : 0;
+  const velocityRatio = solPerCycle > 0 ? Math.round(sol / solPerCycle) : 0;
+  document.getElementById('vel-cycles').textContent    = scanCount;
+  document.getElementById('vel-sol-cycle').textContent = solPerCycle.toFixed(4);
+  document.getElementById('vel-deployed').innerHTML  = _solIcon(9,8,'slg2') + sol.toFixed(4);
+  document.getElementById('vel-ratio').textContent     = total > 0 ? total : 0;
+}
+
+// ── Scan Clock ─────────────────────────────────────────────────────────
+let _scanInterval = 300;
+let _lastScanTs = Date.now() / 1000;
+
+function resetScanClock(ts) { _lastScanTs = ts || Date.now() / 1000; }
+
+// single rAF loop drives both bar and text — always in sync
+let _lastDisplayedSec = -1;
+(function rafScanClock() {
+  const elapsed = Date.now() / 1000 - _lastScanTs;
+  const remaining = Math.max(0, _scanInterval - elapsed);
+  const pct = Math.max(0, 100 - (elapsed / _scanInterval) * 100);
+
+  const barEl = document.getElementById('scan-clock-bar');
+  if (barEl) barEl.style.width = pct + '%';
+
+  // update text only when the displayed second changes (avoids redundant DOM writes)
+  const remSec = Math.floor(remaining);
+  if (remSec !== _lastDisplayedSec) {
+    _lastDisplayedSec = remSec;
+    const mm = String(Math.floor(remaining / 60)).padStart(1, '0');
+    const ss = String(remSec % 60).padStart(2, '0');
+    const label = mm + ':' + ss;
+    const timeEl = document.getElementById('scan-clock-time');
+    const statNext = null;
+    const statusEl = document.getElementById('scan-clock-status');
+    if (timeEl) timeEl.textContent = label;
+    if (statNext) statNext.textContent = label;
+    if (statusEl) {
+      if (remaining === 0) { statusEl.textContent = 'SCANNING'; statusEl.style.color = 'var(--green)'; }
+      else { statusEl.textContent = 'IDLE'; statusEl.style.color = 'var(--cyan)'; }
+    }
+  }
+
+  requestAnimationFrame(rafScanClock);
+})();
+
+// ── Kelly live animation ────────────────────────────────────────────────
+window._kellyTarget = 50;
+(function animateKelly() {
+  const cursor = document.getElementById('kelly-cursor');
+  const fVal   = document.getElementById('kelly-f-val');
+  if (cursor) {
+    const t = performance.now() / 1000;
+    const wobble = Math.sin(t * 0.8) * 1.4 + Math.sin(t * 1.7) * 0.6;
+    const pos = Math.min(98, Math.max(2, window._kellyTarget + wobble));
+    cursor.style.left = pos + '%';
+    if (fVal) fVal.textContent = ((pos - 25) / 50).toFixed(3);
+  }
+  requestAnimationFrame(animateKelly);
+})();
+
+// ── Metrics Histogram ────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('metrics-histogram');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const MAX_BARS = 20;
+  const CYAN = '#00e5ff', GRID = '#0d2233';
+
+  window._histData    = [];
+  window._histPending = 0;
+
+  window.histAddLaunch   = function() { window._histPending++; redraw(); };
+  window.histCommitCycle = function() {
+    window._histData.push(window._histPending);
+    window._histPending = 0;
+    if (window._histData.length > MAX_BARS) window._histData.shift();
+    redraw();
+  };
+
+  const PLACEHOLDER = [1,2,1,3,2,4,2,3,1,2,3,2,4,3,2,1,3,2,4,3];
+
+  function redraw() {
+    ctx.clearRect(0, 0, W, H);
+    const raw  = [...window._histData, window._histPending];
+    const hasReal = raw.some(v => v > 0);
+    const data = hasReal ? raw : PLACEHOLDER;
+    const isPlaceholder = !hasReal;
+    const max = Math.max(...data, 1);
+    const n   = data.length;
+    const gap = 2;
+    const barW = Math.max(2, Math.floor((W - gap * (n - 1)) / n));
+
+    for (let g = 1; g <= 3; g++) {
+      const y = Math.round(H - (g / 4) * H);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y);
+      ctx.strokeStyle = GRID; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    data.forEach((val, i) => {
+      const isLive = !isPlaceholder && i === n - 1;
+      const barH = Math.max(2, Math.round((val / max) * (H - 2)));
+      const x = i * (barW + gap);
+      const alpha = isPlaceholder ? 0.18 : (0.35 + (i / n) * 0.65);
+      ctx.fillStyle = `rgba(0,229,255,${alpha})`;
+      ctx.shadowColor = isLive ? CYAN : 'transparent';
+      ctx.shadowBlur  = isLive ? 6 : 0;
+      ctx.fillRect(x, H - barH, barW, barH);
+    });
+    ctx.shadowBlur = 0;
+  }
+
+  redraw();
+})();
+
+// ── DNA Chart ────────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('dna-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const RUNGS = 10;
+  const CYAN = '#00e5ff', MAGENTA = '#d946ef', DIM = '#1e3a4a';
+  let t = 0;
+  // pulse array: when a signal fires we inject a brightness pulse
+  const pulses = [];
+
+  window.dnaSignalPulse = function() { pulses.push({ t: 0 }); };
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.025;
+
+    // draw rungs first (behind strands)
+    for (let i = 0; i <= RUNGS; i++) {
+      const x = (i / RUNGS) * W;
+      const phase = (i / RUNGS) * Math.PI * 2 + t;
+      const y1 = H / 2 + Math.sin(phase) * (H / 2 - 6);
+      const y2 = H / 2 + Math.sin(phase + Math.PI) * (H / 2 - 6);
+      const depth = (Math.sin(phase) + 1) / 2; // 0=back, 1=front
+      // pulse brightness
+      let pBoost = 0;
+      pulses.forEach(p => { pBoost = Math.max(pBoost, Math.max(0, 1 - p.t / 40)); });
+      const alpha = 0.15 + depth * 0.25 + pBoost * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(x, y1);
+      ctx.lineTo(x, y2);
+      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      ctx.lineWidth = 1 + depth * 1.5;
+      ctx.stroke();
+      // dot at each end
+      const dotR = 1.5 + depth * 1.5;
+      ctx.beginPath();
+      ctx.arc(x, y1, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = CYAN;
+      ctx.globalAlpha = 0.5 + depth * 0.5 + pBoost * 0.5;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y2, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = MAGENTA;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // strand 1
+    ctx.beginPath();
+    for (let x = 0; x <= W; x++) {
+      const phase = (x / W) * Math.PI * 2 + t;
+      const y = H / 2 + Math.sin(phase) * (H / 2 - 6);
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = CYAN;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = CYAN;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // strand 2
+    ctx.beginPath();
+    for (let x = 0; x <= W; x++) {
+      const phase = (x / W) * Math.PI * 2 + t + Math.PI;
+      const y = H / 2 + Math.sin(phase) * (H / 2 - 6);
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = MAGENTA;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = MAGENTA;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // age pulses
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      pulses[i].t++;
+      if (pulses[i].t > 60) pulses.splice(i, 1);
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+function updateLastSignal(meme) {
+  if (window.dnaSignalPulse) window.dnaSignalPulse();
+}
+
+// ── Source heatmap ─────────────────────────────────────────────────────
+const SOURCES = [
+  { key: 'confirmed',  label: 'CONFIRMED',  cls: 'confirmed' },
+  { key: 'submission', label: 'SUBMISSION',  cls: 'submission' },
+  { key: 'newsworthy', label: 'NEWSWORTHY',  cls: 'newsworthy' },
+  { key: 'deadpool',   label: 'DEADPOOL',    cls: 'deadpool' },
+];
+function renderHeatmap() {
+  const c = document.getElementById('src-confirmed');
+  const s = document.getElementById('src-submission');
+  const n = document.getElementById('src-newsworthy');
+  if (c) c.textContent = state.sourceActivity['confirmed'] || 0;
+  if (s) s.textContent = state.sourceActivity['submission'] || 0;
+  if (n) n.textContent = state.sourceActivity['newsworthy'] || 0;
+}
+
+// ── Clock & uptime ─────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toISOString().slice(11,19) + ' UTC';
+  const up = Math.floor((Date.now() - state.startTime) / 1000);
+  const h = String(Math.floor(up/3600)).padStart(2,'0');
+  const m = String(Math.floor((up%3600)/60)).padStart(2,'0');
+  const s = String(up%60).padStart(2,'0');
+  document.getElementById('uptime').textContent = `UP ${h}:${m}:${s}`;
+}
+
+// ── Poll fallback ──────────────────────────────────────────────────────
+async function pollStats() {
+  try {
+    const [s, h, cfg] = await Promise.all([
+      fetch('/api/stats').then(r => r.json()),
+      fetch('/api/pnl-history').then(r => r.json()),
+      fetch('/api/config').then(r => r.json()),
+    ]);
+    updateStats(s);
+    updateChart(h);
+    if (cfg.MAX_LAUNCHES_PER_CYCLE) {
+      _netMaxCycle = cfg.MAX_LAUNCHES_PER_CYCLE;
+      updateNetworkGauge();
+    }
+    if (cfg.SCAN_INTERVAL_SECONDS) { _scanInterval = cfg.SCAN_INTERVAL_SECONDS; }
+  } catch(e) {}
+}
+
+// ── Strategy modal ─────────────────────────────────────────────────────
+async function openStrategy() {
+  document.getElementById('strategy-modal').classList.add('open');
+  document.getElementById('strategy-overlay').classList.add('open');
+  try {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    document.getElementById('tog-dryrun').checked = !!cfg.DRY_RUN;
+    const nums = ['SCAN_INTERVAL_SECONDS','MAX_LAUNCHES_PER_CYCLE',
+                  'PUMPFUN_INITIAL_BUY_SOL','PUMPFUN_PRIORITY_FEE'];
+    nums.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && cfg[k]!==undefined) el.value = cfg[k]; });
+    if (cfg.KYM_CATEGORIES) {
+      ['confirmed','submission','newsworthy','deadpool'].forEach(cat => {
+        const el = document.getElementById('src-'+cat+'-tog');
+        if (el) el.checked = cfg.KYM_CATEGORIES.includes(cat);
+      });
+    }
+  } catch(e) { addLog('Failed to load config', 'ERROR'); }
+}
+
+function closeStrategy() {
+  document.getElementById('strategy-modal').classList.remove('open');
+  document.getElementById('strategy-overlay').classList.remove('open');
+}
+
+async function toggleDryRun(val) {
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ DRY_RUN: val }),
+  });
+  addLog(`DRY_RUN → ${val}`, 'SYSTEM');
+}
+
+async function saveStrategy() {
+  const nums = ['SCAN_INTERVAL_SECONDS','MAX_LAUNCHES_PER_CYCLE',
+                'PUMPFUN_INITIAL_BUY_SOL','PUMPFUN_PRIORITY_FEE'];
+  const payload = { DRY_RUN: document.getElementById('tog-dryrun').checked };
+  nums.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && el.value !== '') payload[k] = Number(el.value); });
+  const cats = ['confirmed','submission','newsworthy','deadpool']
+    .filter(cat => { const el = document.getElementById('src-'+cat+'-tog'); return el && el.checked; });
+  payload.KYM_CATEGORIES = cats;
+  try {
+    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (payload.SCAN_INTERVAL_SECONDS) { _scanInterval = payload.SCAN_INTERVAL_SECONDS; resetScanClock(); }
+    const saved = document.getElementById('sm-saved');
+    saved.classList.add('show');
+    setTimeout(() => saved.classList.remove('show'), 2500);
+    addLog('Settings saved', 'OK');
+  } catch(e) { addLog('Save failed', 'ERROR'); }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _solIcon(w, h, gradId) {
+  return `<svg width="${w}" height="${h}" viewBox="0 0 397.7 311.7" style="vertical-align:middle;margin-right:2px;"><defs><linearGradient id="${gradId}" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9945FF"/><stop offset="50%" stop-color="#8752F3"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#${gradId})"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#${gradId})"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1z" fill="url(#${gradId})"/></svg>`;
+}
+
+function timeAgo(ts) {
+  const sec = Math.floor(Date.now() / 1000 - ts);
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  renderHeatmap();
+  initNetwork();
+  pollNetworkCongestion();
+  connectWS();
+  setInterval(updateClock, 1000);
+  setInterval(pollStats, 10000);
+  pollStats();
+  updateClock();
+  addLog('TYRANT//BOT dashboard loaded', 'SYSTEM');
+  addLog('Connecting to launch engine…', 'SYSTEM');
+
+  // Load config: set correct scan interval before first tick, check wallet
+  fetch('/api/config').then(r => r.json()).then(cfg => {
+    if (cfg.SCAN_INTERVAL_SECONDS) _scanInterval = cfg.SCAN_INTERVAL_SECONDS;
+    if (cfg.SOLANA_PRIVATE_KEY) {
+      const btn = document.getElementById('wallet-btn');
+      btn.textContent = 'WALLET ✓';
+      btn.classList.add('connected');
+    }
+  }).catch(() => {});
+});
+</script>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════════ -->
+<div id="site-footer">
+  <div id="footer-status">
+    <span id="footer-dot"></span>
+    <span id="footer-status-text" style="color:var(--green);">All services live</span>
+  </div>
+  <div id="footer-links">
+    <a href="#" title="X / Twitter">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+    <a href="#" title="Telegram">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 6.9L21 3l-4 18-5.8-5.4L8 19v-5l9-8.5-11.3 5.8L3.4 6.9z"/></svg>
+    </a>
+    <a href="/docs" id="docs-link" title="Documentation" style="color:var(--dim);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.2s;" onmouseover="this.style.color='var(--purple)'" onmouseout="this.style.color='var(--dim)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg><span style="font-size:10px;letter-spacing:0.5px;">DOCS</span></a>
+  </div>
+</div>
+
+<style>
+#site-footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 30px; background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 0 14px; z-index: 900;
+  font-size: 10px; color: var(--dim);
+}
+#footer-status { display: flex; align-items: center; gap: 7px; }
+#footer-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(34,197,94,0.7);
+  animation: footer-dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes footer-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px 2px rgba(34,197,94,0.8), 0 0 14px rgba(34,197,94,0.4); }
+  50%       { opacity: 0.35; box-shadow: none; }
+}
+#footer-status-text { color: var(--purple); font-size: 10px; letter-spacing: 0.5px; }
+#footer-links { display: flex; align-items: center; gap: 14px; }
+#footer-links a {
+  color: var(--dim); text-decoration: none;
+  display: flex; align-items: center; gap: 4px;
+  transition: color 0.15s;
+}
+#footer-links a:hover { color: var(--white); }
+</style>
+</body>
+</html>
