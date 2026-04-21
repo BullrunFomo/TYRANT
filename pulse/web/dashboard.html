@@ -717,11 +717,16 @@
     #app { height: auto; min-height: 100dvh; overflow-y: auto; flex-direction: column; }
 
     /* Header */
-    #header { gap: 8px; padding: 6px 10px; height: auto; flex-wrap: nowrap; overflow: hidden; }
+    #header { gap: 8px; padding: 6px 10px; height: 40px; flex-wrap: nowrap; overflow: hidden; }
     #header .sep { display: none; }
     #scan-status { display: none; }
     #uptime { display: none; }
-    #clock { font-size: 10px; }
+    #clock { display: none; }
+    #mode-badge { font-size: 9px; padding: 2px 6px; white-space: nowrap; }
+    #strategy-link { font-size: 10px; letter-spacing: 1px; }
+    #wallet-btn { font-size: 9px; padding: 3px 8px; white-space: nowrap; }
+    #header > div:first-child .logo { font-size: 12px; letter-spacing: 1px; }
+    #header > div:first-child span { font-size: 8px; padding: 1px 4px; }
 
     /* Banner */
     #pnl-banner { flex-wrap: wrap; height: auto; padding: 4px 0; justify-content: flex-start; }
