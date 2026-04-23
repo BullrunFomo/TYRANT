@@ -19,6 +19,10 @@ KYM_MAX_ENTRIES_PER_CATEGORY: int = int(os.getenv("KYM_MAX_ENTRIES_PER_CATEGORY"
 # ── Launch control ─────────────────────────────────────────────────────────────
 MAX_LAUNCHES_PER_CYCLE: int = int(os.getenv("MAX_LAUNCHES_PER_CYCLE", "3"))
 DRY_RUN: bool = os.getenv("DRY_RUN", "true").lower() == "true"  # safe default
+# SIMULATE=true runs the full launch path (IPFS upload, tx build, sign) but submits
+# simulateTransaction instead of sendTransaction — no SOL spent, no on-chain state.
+# Only honored when DRY_RUN=false. Use it to validate the real deploy flow.
+SIMULATE: bool = os.getenv("SIMULATE", "false").lower() == "true"
 
 # ── Timing ─────────────────────────────────────────────────────────────────────
 SCAN_INTERVAL_SECONDS: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))  # 5 min

@@ -179,20 +179,36 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
         signed = VersionedTransaction(tx.message, [wallet_kp, mint_kp])
         tx_b64 = base64.b64encode(bytes(signed)).decode()
 
-        rpc_payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "sendTransaction",
-            "params": [
-                tx_b64,
-                {
-                    "encoding": "base64",
-                    "skipPreflight": False,
-                    "preflightCommitment": "confirmed",
-                    "maxRetries": 3,
-                },
-            ],
-        }
+        if config.SIMULATE:
+            rpc_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "simulateTransaction",
+                "params": [
+                    tx_b64,
+                    {
+                        "encoding": "base64",
+                        "commitment": "confirmed",
+                        "sigVerify": True,
+                        "replaceRecentBlockhash": False,
+                    },
+                ],
+            }
+        else:
+            rpc_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "sendTransaction",
+                "params": [
+                    tx_b64,
+                    {
+                        "encoding": "base64",
+                        "skipPreflight": False,
+                        "preflightCommitment": "confirmed",
+                        "maxRetries": 3,
+                    },
+                ],
+            }
 
         async with aiohttp.ClientSession() as rpc_session:
             async with rpc_session.post(
@@ -202,8 +218,19 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
             ) as resp:
                 result = await resp.json()
                 if "error" in result:
-                    logger.error("RPC send error: %s", result["error"])
+                    logger.error("RPC %s error: %s",
+                                "simulate" if config.SIMULATE else "send",
+                                result["error"])
                     return None
+                if config.SIMULATE:
+                    sim = result.get("result", {}).get("value", {})
+                    if sim.get("err") is not None:
+                        logger.error("Simulation failed: err=%s logs=%s",
+                                     sim.get("err"), sim.get("logs", [])[-5:])
+                        return None
+                    logger.info("TX simulated OK: units=%s logs_tail=%s",
+                                sim.get("unitsConsumed"), sim.get("logs", [])[-3:])
+                    return "SIM_OK"
                 sig = result.get("result", "")
                 logger.info("TX sent: %s", sig)
                 return sig
@@ -341,5 +368,5 @@ async def launch_token(
         tx_sig=sig,
         mint_address=mint_pubkey,
         metadata_uri=metadata_uri,
-        sol_spent=config.PUMPFUN_INITIAL_BUY_SOL + config.PUMPFUN_PRIORITY_FEE,
+        sol_spent=0.0 if config.SIMULATE else (config.PUMPFUN_INITIAL_BUY_SOL + config.PUMPFUN_PRIORITY_FEE),
     )

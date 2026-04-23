@@ -58,7 +58,12 @@ async def launch_loop() -> None:
                         image_url=entry.image_url or "",
                         description=entry.description or f"KYM {entry.source} meme. Source: {entry.url}",
                     )
-                    status = "DRY_RUN" if config.DRY_RUN else ("LAUNCHED" if result.success else "FAILED")
+                    if config.DRY_RUN:
+                        status = "DRY_RUN"
+                    elif config.SIMULATE:
+                        status = "SIMULATED" if result.success else "FAILED"
+                    else:
+                        status = "LAUNCHED" if result.success else "FAILED"
                     record = Launch(
                         id=None, timestamp=_time.time(),
                         name=entry.title, ticker=ticker,
@@ -70,8 +75,9 @@ async def launch_loop() -> None:
                     await db.insert_launch(record)
                     await db.snapshot_launch_count()
                     if result.success:
+                        tag = "[DRY] " if config.DRY_RUN else ("[SIM] " if config.SIMULATE else "")
                         await emit_log(
-                            f"  ✓ {'[DRY] ' if config.DRY_RUN else ''}Launched {entry.title} ({ticker})"
+                            f"  ✓ {tag}Launched {entry.title} ({ticker})"
                             f" mint={result.mint_address[:8]} tx={result.tx_sig[:16]}", "OK"
                         )
                     else:
