@@ -1,2 +1,2 @@
-"""Pulse — Autonomous weather market trading bot for Polymarket."""
+"""TYRANT//BOT — autonomous KnowYourMeme → pump.fun launcher."""
 __version__ = "1.0.0"
