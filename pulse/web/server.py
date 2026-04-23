@@ -94,11 +94,6 @@ async def emit_trade(data: dict):
     await manager.broadcast({"type": "trade", "trade": data})
 
 
-async def emit_launch_request(meme: dict):
-    """Broadcast a new meme to all browsers for wallet-signing."""
-    await manager.broadcast({"type": "launch_request", "meme": meme})
-
-
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -148,97 +143,6 @@ async def get_pnl_history():
         "timestamps": [h.timestamp for h in history],
         "values": [float(h.count) for h in history],
     }
-
-
-class PrepareTxRequest(BaseModel):
-    name: str
-    ticker: str
-    image_url: str
-    description: str = ""
-    meme_url: str = ""
-    source: str = ""
-    wallet_pubkey: str
-
-
-@app.post("/api/prepare-tx")
-async def prepare_tx(req: PrepareTxRequest):
-    """
-    Build an unsigned pump.fun create transaction for the browser to sign.
-    In DRY_RUN mode returns a fake payload so the UI flow can be tested.
-    """
-    if config.DRY_RUN:
-        return {
-            "dry_run": True,
-            "tx_b64": "",
-            "mint_secret_b64": "",
-            "mint_pubkey": "DRY_RUN_MINT_" + req.ticker,
-            "metadata_uri": "dry://run/" + req.ticker,
-        }
-
-    from pulse.launchers.pumpfun import prepare_launch_tx
-    result = await prepare_launch_tx(
-        name=req.name,
-        ticker=req.ticker,
-        image_url=req.image_url,
-        description=req.description or f"KYM {req.source} meme. Source: {req.meme_url}",
-        wallet_pubkey=req.wallet_pubkey,
-    )
-    if result is None:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail="Failed to prepare transaction")
-
-    return {"dry_run": False, **result}
-
-
-class ConfirmLaunchRequest(BaseModel):
-    name: str
-    ticker: str
-    source: str
-    meme_url: str
-    image_url: str = ""
-    mint_pubkey: str
-    tx_sig: str
-    sol_spent: float = 0.0
-    dry_run: bool = False
-
-
-@app.post("/api/confirm-launch")
-async def confirm_launch(req: ConfirmLaunchRequest):
-    """Record a completed launch after the browser signs and submits the tx."""
-    from pulse.db import database as db
-    from pulse.db.database import Launch
-
-    status = "DRY_RUN" if req.dry_run else "LAUNCHED"
-    record = Launch(
-        id=None,
-        timestamp=time.time(),
-        name=req.name,
-        ticker=req.ticker,
-        source=req.source,
-        meme_url=req.meme_url,
-        image_url=req.image_url,
-        description="",
-        tx_sig=req.tx_sig,
-        mint_address=req.mint_pubkey,
-        status=status,
-        sol_spent=req.sol_spent,
-        error="",
-    )
-    launch_id = await db.insert_launch(record)
-    await db.snapshot_launch_count()
-
-    await emit_exec(
-        "DRY" if req.dry_run else "LAUNCH",
-        req.source.upper(),
-        f"{req.name[:28]} ({req.ticker}) tx={req.tx_sig[:12]}",
-    )
-    await emit_log(
-        f"{'[DRY] ' if req.dry_run else ''}Launched {req.name} ({req.ticker}) "
-        f"mint={req.mint_pubkey[:8]} tx={req.tx_sig[:16]}",
-        "OK",
-    )
-
-    return {"ok": True, "id": launch_id}
 
 
 @app.get("/api/config")

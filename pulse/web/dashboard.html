@@ -1499,10 +1499,6 @@ function handleMessage(msg) {
       if (state.launches.length > 50) state.launches.pop();
       renderLaunches(state.launches);
       break;
-    case 'launch_request':
-      enqueueMeme(msg.meme);
-      updateLastSignal(msg.meme);
-      break;
   }
 }
 

@@ -240,66 +240,6 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
         return None
 
 
-async def prepare_launch_tx(
-    name: str,
-    ticker: str,
-    image_url: str,
-    description: str,
-    wallet_pubkey: str,
-) -> Optional[dict]:
-    """
-    Prepare an unsigned pump.fun create transaction for browser-side wallet signing.
-
-    Flow:
-      1. Download meme image
-      2. Upload metadata + image to pump.fun IPFS
-      3. Generate a fresh mint keypair
-      4. Ask pump.fun to build the create transaction
-      5. Return: unsigned tx bytes (b64), mint secret (b64 of full 64-byte keypair),
-                 mint pubkey, and metadata URI
-
-    The caller (browser) must:
-      a. Reconstruct the mint keypair from mint_secret_b64
-      b. Sign the tx with the mint keypair
-      c. Sign the tx with the user's wallet (Phantom / Solflare)
-      d. Submit the fully-signed tx to Solana RPC
-    """
-    if not wallet_pubkey:
-        return None
-
-    try:
-        from solders.keypair import Keypair
-        mint_kp = Keypair()
-        mint_pubkey = str(mint_kp.pubkey())
-        mint_secret_b64 = base64.b64encode(bytes(mint_kp)).decode()
-    except Exception as exc:
-        logger.error("Keypair generation error: %s", exc)
-        return None
-
-    async with aiohttp.ClientSession() as session:
-        image_data = await _download_image(session, image_url)
-
-        metadata_uri = await _upload_metadata(
-            session, name, ticker, description, image_data, image_url
-        )
-        if not metadata_uri:
-            return None
-
-        tx_bytes = await _build_create_tx(
-            session, wallet_pubkey, mint_pubkey, name, ticker, metadata_uri
-        )
-        if not tx_bytes:
-            return None
-
-    tx_b64 = base64.b64encode(tx_bytes).decode()
-    return {
-        "tx_b64": tx_b64,
-        "mint_secret_b64": mint_secret_b64,
-        "mint_pubkey": mint_pubkey,
-        "metadata_uri": metadata_uri,
-    }
-
-
 async def launch_token(
     name: str,
     ticker: str,

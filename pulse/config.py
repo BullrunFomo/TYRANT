@@ -28,10 +28,6 @@ SIMULATE: bool = os.getenv("SIMULATE", "false").lower() == "true"
 SCAN_INTERVAL_SECONDS: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))  # 5 min
 DASHBOARD_REFRESH_SECONDS: float = float(os.getenv("DASHBOARD_REFRESH_SECONDS", "2.0"))
 
-# ── Telegram ───────────────────────────────────────────────────────────────────
-TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
-
 # ── Database ───────────────────────────────────────────────────────────────────
 DB_PATH: str = os.getenv("DB_PATH", "tyrant_launches.db")
 

@@ -13,7 +13,7 @@ import uvicorn
 from pulse import config
 from pulse.db import database as db
 from pulse.market.meme_scanner import scan_for_new_memes
-from pulse.web.server import app, emit_log, emit_exec, emit_stats, emit_pnl_history, emit_launch_request, register_startup
+from pulse.web.server import app, emit_log, emit_exec, emit_stats, emit_pnl_history, register_startup
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
