@@ -10,9 +10,9 @@ import time
 from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Callable, Deque, List, Optional, Set
+from typing import Callable, Deque, List, Set
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -99,21 +99,6 @@ async def emit_launch_request(meme: dict):
     await manager.broadcast({"type": "launch_request", "meme": meme})
 
 
-# ── Auth ───────────────────────────────────────────────────────────────────────
-
-async def require_auth(x_access_key: str = Header(..., alias="X-Access-Key")):
-    from pulse.db import database as db
-    account = await db.get_account_by_key(x_access_key)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Invalid access key")
-    return account
-
-
-def _require_admin(authorization: str = Header(...)):
-    if not config.ADMIN_SECRET or authorization != f"Bearer {config.ADMIN_SECRET}":
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -128,49 +113,13 @@ async def docs_page():
     return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
 
-@app.get("/api/auth")
-async def auth_check(key: str = Query(...)):
-    from pulse.db import database as db
-    account = await db.get_account_by_key(key)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Invalid access key")
-    return {"ok": True, "label": account.label, "id": account.id}
-
-
-# ── Admin endpoints ────────────────────────────────────────────────────────────
-
-@app.post("/admin/accounts")
-async def admin_create_account(data: dict = {}, _: None = Depends(_require_admin)):
-    from pulse.db import database as db
-    label = data.get("label", "") if data else ""
-    account = await db.create_account(label)
-    return {"id": account.id, "access_key": account.access_key, "label": account.label}
-
-
-@app.get("/admin/accounts")
-async def admin_list_accounts(_: None = Depends(_require_admin)):
-    from pulse.db import database as db
-    accounts = await db.get_all_accounts()
-    return [{"id": a.id, "label": a.label, "access_key": a.access_key, "created_at": a.created_at} for a in accounts]
-
-
-@app.delete("/admin/accounts/{account_id}")
-async def admin_delete_account(account_id: int, _: None = Depends(_require_admin)):
-    from pulse.db import database as db
-    await db.delete_account(account_id)
-    return {"ok": True}
-
-
-# ── Protected API endpoints ────────────────────────────────────────────────────
-
 @app.get("/api/stats")
-async def get_stats(account=Depends(require_auth)):
+async def get_stats():
     from pulse.db import database as db
-    aid = account.id
-    total = await db.get_total_launches(aid)
-    today = await db.get_today_launches(aid)
-    sol = await db.get_total_sol_spent(aid)
-    launches = await db.get_launches(200, aid)
+    total = await db.get_total_launches()
+    today = await db.get_today_launches()
+    sol = await db.get_total_sol_spent()
+    launches = await db.get_launches(200)
     n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "DRY_RUN"))
     n_fail = sum(1 for l in launches if l.status == "FAILED")
     return {
@@ -185,16 +134,16 @@ async def get_stats(account=Depends(require_auth)):
 
 
 @app.get("/api/launches")
-async def get_launches(account=Depends(require_auth)):
+async def get_launches():
     from pulse.db import database as db
-    launches = await db.get_launches(50, account.id)
+    launches = await db.get_launches(50)
     return [_launch_dict(l) for l in launches]
 
 
 @app.get("/api/pnl-history")
-async def get_pnl_history(account=Depends(require_auth)):
+async def get_pnl_history():
     from pulse.db import database as db
-    history = await db.get_launch_history(200, account.id)
+    history = await db.get_launch_history(200)
     return {
         "timestamps": [h.timestamp for h in history],
         "values": [float(h.count) for h in history],
@@ -212,7 +161,11 @@ class PrepareTxRequest(BaseModel):
 
 
 @app.post("/api/prepare-tx")
-async def prepare_tx(req: PrepareTxRequest, account=Depends(require_auth)):
+async def prepare_tx(req: PrepareTxRequest):
+    """
+    Build an unsigned pump.fun create transaction for the browser to sign.
+    In DRY_RUN mode returns a fake payload so the UI flow can be tested.
+    """
     if config.DRY_RUN:
         return {
             "dry_run": True,
@@ -231,6 +184,7 @@ async def prepare_tx(req: PrepareTxRequest, account=Depends(require_auth)):
         wallet_pubkey=req.wallet_pubkey,
     )
     if result is None:
+        from fastapi import HTTPException
         raise HTTPException(status_code=500, detail="Failed to prepare transaction")
 
     return {"dry_run": False, **result}
@@ -249,7 +203,8 @@ class ConfirmLaunchRequest(BaseModel):
 
 
 @app.post("/api/confirm-launch")
-async def confirm_launch(req: ConfirmLaunchRequest, account=Depends(require_auth)):
+async def confirm_launch(req: ConfirmLaunchRequest):
+    """Record a completed launch after the browser signs and submits the tx."""
     from pulse.db import database as db
     from pulse.db.database import Launch
 
@@ -268,10 +223,9 @@ async def confirm_launch(req: ConfirmLaunchRequest, account=Depends(require_auth
         status=status,
         sol_spent=req.sol_spent,
         error="",
-        account_id=account.id,
     )
     launch_id = await db.insert_launch(record)
-    await db.snapshot_launch_count(account.id)
+    await db.snapshot_launch_count()
 
     await emit_exec(
         "DRY" if req.dry_run else "LAUNCH",
@@ -288,7 +242,7 @@ async def confirm_launch(req: ConfirmLaunchRequest, account=Depends(require_auth
 
 
 @app.get("/api/config")
-async def get_config_endpoint(account=Depends(require_auth)):
+async def get_config_endpoint():
     return {
         "DRY_RUN": config.DRY_RUN,
         "SCAN_INTERVAL_SECONDS": config.SCAN_INTERVAL_SECONDS,
@@ -298,12 +252,12 @@ async def get_config_endpoint(account=Depends(require_auth)):
         "SOLANA_RPC_URL": config.SOLANA_RPC_URL,
         "KYM_MAX_ENTRIES_PER_CATEGORY": config.KYM_MAX_ENTRIES_PER_CATEGORY,
         "KYM_CATEGORIES": config.KYM_CATEGORIES,
-        "SOLANA_PRIVATE_KEY": bool(config.SOLANA_PRIVATE_KEY),
+        "SOLANA_PRIVATE_KEY": bool(config.SOLANA_PRIVATE_KEY),  # presence only, never expose key
     }
 
 
 @app.post("/api/config")
-async def set_config_endpoint(data: dict, account=Depends(require_auth)):
+async def set_config_endpoint(data: dict):
     _BOOL  = {"DRY_RUN"}
     _FLOAT = {"PUMPFUN_INITIAL_BUY_SOL", "PUMPFUN_PRIORITY_FEE"}
     _INT   = {"SCAN_INTERVAL_SECONDS", "MAX_LAUNCHES_PER_CYCLE",
@@ -332,6 +286,7 @@ def _write_env(updates: dict):
     from pathlib import Path
     env_path = Path(__file__).parent.parent.parent / ".env"
     if not env_path.exists():
+        # Create from .env.example if available, otherwise start fresh
         example = env_path.parent / ".env.example"
         if example.exists():
             import shutil
@@ -364,21 +319,15 @@ def _write_env(updates: dict):
 # ── WebSocket ──────────────────────────────────────────────────────────────────
 
 @app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket, key: str = Query(...)):
-    from pulse.db import database as db
-
-    account = await db.get_account_by_key(key)
-    if account is None:
-        await ws.close(code=4001)
-        return
-
+async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
     try:
-        total = await db.get_total_launches(account.id)
-        today = await db.get_today_launches(account.id)
-        sol = await db.get_total_sol_spent(account.id)
-        launches = await db.get_launches(30, account.id)
-        history = await db.get_launch_history(200, account.id)
+        from pulse.db import database as db
+        total = await db.get_total_launches()
+        today = await db.get_today_launches()
+        sol = await db.get_total_sol_spent()
+        launches = await db.get_launches(30)
+        history = await db.get_launch_history(200)
         n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "DRY_RUN"))
         n_fail = sum(1 for l in launches if l.status == "FAILED")
 
