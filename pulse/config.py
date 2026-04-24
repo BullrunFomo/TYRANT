@@ -31,5 +31,8 @@ TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 # ── Database ───────────────────────────────────────────────────────────────────
 DB_PATH: str = os.getenv("DB_PATH", "tyrant_launches.db")
 
+# ── Auth ───────────────────────────────────────────────────────────────────────
+ADMIN_SECRET: str = os.getenv("ADMIN_SECRET", "")
+
 # ── Misc ───────────────────────────────────────────────────────────────────────
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

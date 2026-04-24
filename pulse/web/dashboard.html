@@ -776,8 +776,86 @@
     #site-footer { position: fixed; }
   }
 </style>
+
+<style>
+/* ── ACCESS KEY GATE ── */
+#access-gate {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5,5,16,0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+#access-gate.hidden { display: none; }
+#access-card {
+  background: var(--bg2);
+  border: 1px solid var(--purple2);
+  border-radius: 6px;
+  padding: 40px 44px;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  box-shadow: 0 0 60px rgba(168,85,247,0.18), 0 0 0 1px rgba(168,85,247,0.08);
+}
+#access-logo {
+  color: var(--purple); font-weight: 700; font-size: 18px; letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+#access-logo span { color: var(--cyan); }
+#access-subtitle {
+  color: var(--dim); font-size: 10px; letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+#access-label {
+  color: var(--cyan); font-size: 10px; letter-spacing: 2px; font-weight: 600;
+  align-self: flex-start; margin-bottom: 8px;
+}
+#access-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--white); font-family: inherit; font-size: 13px;
+  padding: 10px 14px; border-radius: 3px; outline: none;
+  letter-spacing: 0.5px; transition: border-color 0.2s;
+  margin-bottom: 14px;
+}
+#access-input:focus { border-color: var(--purple); }
+#access-input.error { border-color: var(--red); }
+#access-error {
+  color: var(--red); font-size: 10px; letter-spacing: 0.5px;
+  align-self: flex-start; margin-top: -10px; margin-bottom: 10px;
+  min-height: 14px;
+}
+#access-btn {
+  width: 100%; padding: 10px;
+  background: rgba(168,85,247,0.18);
+  color: var(--purple); border: 1px solid var(--purple2);
+  border-radius: 3px; font-family: inherit; font-size: 11px;
+  font-weight: 700; letter-spacing: 2px; cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#access-btn:hover { background: rgba(168,85,247,0.35); color: var(--white); }
+#access-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#access-glow {
+  position: absolute; width: 300px; height: 300px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);
+  pointer-events: none; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+</style>
 </head>
 <body>
+
+<!-- ══ ACCESS KEY GATE ════════════════════════════════════════════════ -->
+<div id="access-gate">
+  <div id="access-glow"></div>
+  <div id="access-card">
+    <div id="access-logo">TYRANT<span>//BOT</span></div>
+    <div id="access-subtitle">RESTRICTED ACCESS</div>
+    <div id="access-label">ACCESS KEY</div>
+    <input id="access-input" type="password" placeholder="Enter your access key" autocomplete="off" spellcheck="false" />
+    <div id="access-error"></div>
+    <button id="access-btn" onclick="submitAccessKey()">ENTER</button>
+  </div>
+</div>
 
 <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
 <div id="header">
@@ -1459,7 +1537,7 @@ let ws;
 let wsReconnectDelay = 1000;
 
 function connectWS() {
-  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+  ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?key=${encodeURIComponent(_accessKey)}`);
   ws.onopen = () => {
     wsReconnectDelay = 1000;
     addLog('WebSocket connected', 'OK');
@@ -1523,7 +1601,7 @@ async function pollNetworkCongestion() {
   const badge = document.getElementById('pending-count');
   async function fetch_congestion() {
     try {
-      const cfgResp = await fetch('/api/config').then(r => r.json());
+      const cfgResp = await authFetch('/api/config').then(r => r.json());
       const rpcUrl = cfgResp.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
       const resp = await fetch(rpcUrl, {
         method: 'POST',
@@ -1616,7 +1694,7 @@ async function submitPk() {
   saveBtn.classList.add('loading');
   saveBtn.textContent = 'SAVING…';
   try {
-    const r = await fetch('/api/config', {
+    const r = await authFetch('/api/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ SOLANA_PRIVATE_KEY: pk }),
@@ -2037,9 +2115,9 @@ function updateClock() {
 async function pollStats() {
   try {
     const [s, h, cfg] = await Promise.all([
-      fetch('/api/stats').then(r => r.json()),
-      fetch('/api/pnl-history').then(r => r.json()),
-      fetch('/api/config').then(r => r.json()),
+      authFetch('/api/stats').then(r => r.json()),
+      authFetch('/api/pnl-history').then(r => r.json()),
+      authFetch('/api/config').then(r => r.json()),
     ]);
     updateStats(s);
     updateChart(h);
@@ -2056,7 +2134,7 @@ async function openStrategy() {
   document.getElementById('strategy-modal').classList.add('open');
   document.getElementById('strategy-overlay').classList.add('open');
   try {
-    const cfg = await fetch('/api/config').then(r => r.json());
+    const cfg = await authFetch('/api/config').then(r => r.json());
     document.getElementById('tog-dryrun').checked = !!cfg.DRY_RUN;
     const nums = ['SCAN_INTERVAL_SECONDS','MAX_LAUNCHES_PER_CYCLE',
                   'PUMPFUN_INITIAL_BUY_SOL','PUMPFUN_PRIORITY_FEE'];
@@ -2076,7 +2154,7 @@ function closeStrategy() {
 }
 
 async function toggleDryRun(val) {
-  await fetch('/api/config', {
+  await authFetch('/api/config', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ DRY_RUN: val }),
@@ -2093,7 +2171,7 @@ async function saveStrategy() {
     .filter(cat => { const el = document.getElementById('src-'+cat+'-tog'); return el && el.checked; });
   payload.KYM_CATEGORIES = cats;
   try {
-    await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    await authFetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     if (payload.SCAN_INTERVAL_SECONDS) { _scanInterval = payload.SCAN_INTERVAL_SECONDS; resetScanClock(); }
     const saved = document.getElementById('sm-saved');
     saved.classList.add('show');
@@ -2120,7 +2198,66 @@ function timeAgo(ts) {
 }
 
 // ── Init ───────────────────────────────────────────────────────────────
+// ── Auth helpers ───────────────────────────────────────────────────────
+let _accessKey = '';
+
+function authFetch(url, opts = {}) {
+  opts.headers = { ...(opts.headers || {}), 'X-Access-Key': _accessKey };
+  return fetch(url, opts);
+}
+
+async function submitAccessKey() {
+  const input = document.getElementById('access-input');
+  const btn   = document.getElementById('access-btn');
+  const err   = document.getElementById('access-error');
+  const key   = input.value.trim();
+  if (!key) return;
+
+  btn.disabled = true;
+  btn.textContent = 'VERIFYING…';
+  err.textContent = '';
+  input.classList.remove('error');
+
+  try {
+    const r = await fetch(`/api/auth?key=${encodeURIComponent(key)}`);
+    if (r.ok) {
+      _accessKey = key;
+      localStorage.setItem('tyrant_access_key', key);
+      document.getElementById('access-gate').classList.add('hidden');
+      initApp();
+    } else {
+      input.classList.add('error');
+      err.textContent = 'Invalid access key.';
+    }
+  } catch {
+    err.textContent = 'Connection error.';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'ENTER';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('access-input');
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitAccessKey(); });
+
+  const saved = localStorage.getItem('tyrant_access_key');
+  if (saved) {
+    fetch(`/api/auth?key=${encodeURIComponent(saved)}`)
+      .then(r => {
+        if (r.ok) {
+          _accessKey = saved;
+          document.getElementById('access-gate').classList.add('hidden');
+          initApp();
+        } else {
+          localStorage.removeItem('tyrant_access_key');
+        }
+      })
+      .catch(() => {});
+  }
+});
+
+function initApp() {
   renderHeatmap();
   initNetwork();
   pollNetworkCongestion();
@@ -2132,8 +2269,7 @@ document.addEventListener('DOMContentLoaded', () => {
   addLog('TYRANT//BOT dashboard loaded', 'SYSTEM');
   addLog('Connecting to launch engine…', 'SYSTEM');
 
-  // Load config: set correct scan interval before first tick, check wallet
-  fetch('/api/config').then(r => r.json()).then(cfg => {
+  authFetch('/api/config').then(r => r.json()).then(cfg => {
     if (cfg.SCAN_INTERVAL_SECONDS) _scanInterval = cfg.SCAN_INTERVAL_SECONDS;
     if (cfg.SOLANA_PRIVATE_KEY) {
       const btn = document.getElementById('wallet-btn');
@@ -2141,7 +2277,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('connected');
     }
   }).catch(() => {});
-});
+}
 </script>
 
 <!-- ══ FOOTER ══════════════════════════════════════════════════════════ -->
