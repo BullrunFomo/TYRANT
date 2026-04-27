@@ -399,40 +399,6 @@
   .tag-INFO    { color: var(--cyan); }
   .tag-WARN    { color: var(--yellow); }
 
-  /* ── SOURCE HEATMAP ── */
-  #heatmap-inner {
-    flex: 1;
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    justify-content: center;
-  }
-  .heat-source {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .heat-label { font-size: 9px; width: 64px; flex-shrink: 0; letter-spacing: 1px; }
-  .heat-bar {
-    flex: 1;
-    height: 10px;
-    border-radius: 1px;
-    background: var(--bg3);
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border);
-  }
-  .heat-fill {
-    height: 100%;
-    transition: width 0.5s ease;
-  }
-  .heat-fill.confirmed  { background: linear-gradient(90deg, var(--green-dim), var(--green)); }
-  .heat-fill.submission { background: linear-gradient(90deg, var(--cyan-dim), var(--cyan)); }
-  .heat-fill.newsworthy { background: linear-gradient(90deg, #713f12, var(--yellow)); }
-  .heat-fill.deadpool   { background: linear-gradient(90deg, var(--red-dim), var(--red)); }
-  .heat-count { font-size: 9px; color: var(--dim); width: 20px; text-align: right; flex-shrink: 0; }
-
   /* ── LEFT COLUMN WRAP ── */
   #left-col-wrap {
     display: flex;
@@ -445,20 +411,6 @@
   #alpha-panel { display: flex; flex-direction: column; }
   #alpha-inner { flex: 1; min-height: 0; overflow: hidden; padding: 7px 10px; display: flex; flex-direction: column; justify-content: space-evenly; gap: 0; }
 
-  /* Kelly Gauge */
-  .kelly-widget { display: flex; flex-direction: column; gap: 6px; }
-  .kelly-header { display: flex; justify-content: space-between; align-items: center; }
-  .kelly-title { font-size: 11px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; }
-  .kelly-f { font-size: 12px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; }
-  .kelly-bar-wrap { position: relative; height: 19px; border-radius: 2px; overflow: hidden;
-    background: linear-gradient(90deg, #7c3aed 0%, #22c55e 40%, #22c55e 60%, #7c3aed 100%); }
-  .kelly-cursor { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff;
-    border-radius: 1px; transform: translateX(-50%); box-shadow: 0 0 4px #fff8; }
-  .kelly-labels { display: flex; justify-content: space-between; }
-  .kelly-lbl { font-size: 10px; color: var(--dim); letter-spacing: 1px; }
-  .kelly-optimal { position: absolute; left: 50%; transform: translateX(-50%);
-    font-size: 10px; font-weight: 700; color: #1e1b4b; letter-spacing: 1px; line-height: 19px; }
-
   /* Scan Clock */
   .scan-clock-widget { display: flex; flex-direction: column; gap: 3px; }
   .scan-clock-header { display: flex; justify-content: space-between; align-items: center; }
@@ -470,99 +422,14 @@
   .scan-clock-bar-wrap { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
   .scan-clock-bar { height: 100%; background: var(--cyan); border-radius: 2px; }
 
-  /* DNA Chart */
-  .dna-widget { display: flex; flex-direction: column; gap: 3px; }
-  .dna-title { font-size: 10px; letter-spacing: 1.5px; color: var(--dim); font-weight: 700; }
-  #dna-canvas { display: block; border-radius: 3px; }
-
-  /* ── LAUNCH QUEUE MINI (left) ── */
+  /* ── MEME NETWORK panel (decorative) ── */
   #queue-mini-panel {
     flex-shrink: 0;
     height: 200px;
     display: flex;
     flex-direction: column;
   }
-  #queue-mini-inner {
-    max-height: 160px;
-    overflow-y: auto;
-    padding: 0;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .qm-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 0;
-    border-bottom: 1px solid rgba(26,26,46,0.4);
-    font-size: 10px;
-  }
-  .qm-badge {
-    font-size: 8px;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 2px;
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-  }
-  .qm-confirmed  { background: rgba(34,197,94,0.1);  color: var(--green);   border: 1px solid var(--green-dim); }
-  .qm-submission { background: rgba(34,211,238,0.08); color: var(--cyan);    border: 1px solid var(--cyan-dim); }
-  .qm-newsworthy { background: rgba(234,179,8,0.1);  color: var(--yellow);  border: 1px solid rgba(234,179,8,0.3); }
-  .qm-deadpool   { background: rgba(239,68,68,0.1);  color: var(--red);     border: 1px solid var(--red-dim); }
-  .qm-name { color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-  .qm-ticker { color: var(--magenta); font-weight: 700; flex-shrink: 0; font-size: 9px; }
-  .qm-sign-btn {
-    font-size: 8px;
-    font-weight: 700;
-    padding: 1px 8px;
-    background: rgba(168,85,247,0.2);
-    color: var(--purple);
-    border: 1px solid var(--purple2);
-    border-radius: 2px;
-    cursor: pointer;
-    font-family: inherit;
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-    transition: background 0.15s;
-  }
-  .qm-sign-btn:hover { background: rgba(168,85,247,0.4); }
-  .qm-sign-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  /* ── NETWORK VISUALIZATION ── */
-  #net-gauge-wrap { padding: 5px 8px 2px; flex-shrink: 0; }
-  #net-gauge-label { font-size: 9px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 3px; }
-  #net-gauge-val   { color: var(--white); }
-  #net-gauge-track {
-    height: 7px; background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 1px; overflow: hidden; position: relative;
-  }
-  #net-gauge-fill {
-    height: 100%; width: 0%;
-    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
-    transition: width 0.5s ease;
-    box-shadow: 0 0 6px rgba(34,211,238,0.5);
-  }
-  #net-gauge-ticks {
-    display: flex; justify-content: space-between;
-    font-size: 7px; color: var(--dim); margin-top: 2px; letter-spacing: 0.5px;
-  }
-  #net-label-row {
-    display: flex; align-items: center; gap: 6px;
-    padding: 4px 8px 2px; font-size: 10px; letter-spacing: 1px; flex-shrink: 0;
-  }
-  #pending-count {
-    font-size: 11px; font-weight: 700;
-    transition: color 0.2s;
-  }
-  #net-count { color: var(--cyan); font-size: 14px; font-weight: 700; margin-left: auto; }
   #networkCanvas { flex: 1; min-height: 0; display: block; width: 100%; }
-
-  /* Sign queue section in right panel */
-  #sign-section { flex-shrink: 0; border-bottom: 1px solid var(--border); display: none; flex-direction: column; }
-  #sign-queue-inner {
-    max-height: 160px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-  }
 
   /* ── STRATEGY MODAL ── */
   #strategy-overlay {
@@ -802,20 +669,20 @@
 <!-- ══ BANNER ═══════════════════════════════════════════════════════════ -->
 <div id="pnl-banner">
   <div class="pnl-item">
-    <span class="pnl-label">TOTAL PNL</span>
-    <span id="total-launched" class="pnl-value pos">+$0.000</span>
+    <span class="pnl-label">TOTAL LAUNCHES</span>
+    <span id="total-launched" class="pnl-value cyan">0</span>
   </div>
   <div class="pnl-item">
-    <span class="pnl-label">TODAY PNL</span>
-    <span id="today-launched" class="pnl-value pos">+$0.000</span>
+    <span class="pnl-label">LAUNCHES TODAY</span>
+    <span id="today-launched" class="pnl-value cyan">0</span>
   </div>
   <div class="pnl-item">
-    <span class="pnl-label">EQUITY</span>
+    <span class="pnl-label">SOL SPENT</span>
     <span id="sol-spent" class="pnl-value neu"><svg width="13" height="11" viewBox="0 0 397.7 311.7" style="vertical-align:middle;margin-right:3px;"><defs><linearGradient id="slg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9945FF"/><stop offset="50%" stop-color="#8752F3"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1z" fill="url(#slg)"/></svg><span id="sol-spent-val">0.0000</span></span>
   </div>
   <div class="pnl-item">
-    <span class="pnl-label">WIN RATE</span>
-    <span id="queue-count" class="pnl-value neg">0.0%</span>
+    <span class="pnl-label">SUCCESS RATE</span>
+    <span id="success-rate" class="pnl-value neu">—</span>
   </div>
   <div class="pnl-item">
     <span class="pnl-label">CIRCUIT</span>
@@ -845,22 +712,16 @@
   <!-- CENTER: Chart -->
   <div id="center-col">
     <div class="panel" id="chart-panel">
-      <div class="panel-title purple"><span class="pdot pdot-purple"></span>PNL CHART</div>
+      <div class="panel-title purple"><span class="pdot pdot-purple"></span>LAUNCH VOLUME</div>
       <div id="chart-wrap" style="flex:1;padding:8px;min-height:0;">
         <canvas id="equityChart"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- RIGHT: Sign queue + Recent launches -->
+  <!-- RIGHT: Launch history -->
   <div class="panel" style="display:flex;flex-direction:column;">
-    <!-- Launch queue (auto-launching) -->
-    <div id="sign-section">
-      <div class="panel-title magenta" style="flex-shrink:0;"><span class="pdot pdot-magenta"></span>LAUNCH QUEUE <span id="sign-queue-count" style="margin-left:auto;color:var(--magenta);">0</span></div>
-      <div id="queue-mini-inner" class="sign-queue-inner"></div>
-    </div>
-    <!-- Recent launches -->
-    <div class="panel-title" style="flex-shrink:0;"><span class="pdot pdot-cyan"></span>RECENT LAUNCHES</div>
+    <div class="panel-title" style="flex-shrink:0;"><span class="pdot pdot-cyan"></span>LAUNCH HISTORY</div>
     <div id="launches-inner" style="flex:1;min-height:0;overflow-y:auto;">
       <table>
         <colgroup>
@@ -872,7 +733,7 @@
           </tr>
         </thead>
         <tbody id="launches-body">
-          <tr><td colspan="5" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>
+          <tr><td colspan="6" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>
         </tbody>
       </table>
     </div>
@@ -887,22 +748,6 @@
   <div class="panel" id="alpha-panel">
     <div class="panel-title" style="color:var(--cyan);"><span class="pdot pdot-cyan"></span>ALPHA</div>
     <div id="alpha-inner">
-
-      <!-- Kelly Gauge -->
-      <div class="kelly-widget">
-        <div class="kelly-header">
-          <span class="kelly-title">KELLY GAUGE</span>
-          <span class="kelly-f">F=<span id="kelly-f-val">0.000</span></span>
-        </div>
-        <div class="kelly-bar-wrap">
-          <span class="kelly-optimal">OPTIMAL</span>
-          <div class="kelly-cursor" id="kelly-cursor" style="left:50%;"></div>
-        </div>
-        <div class="kelly-labels">
-          <span class="kelly-lbl">OVER</span>
-          <span class="kelly-lbl">OVER</span>
-        </div>
-      </div>
 
       <!-- Scan Clock -->
       <div class="scan-clock-widget">
@@ -958,12 +803,12 @@
         <span class="stat-label">Success Rate</span>
       </div>
       <div class="stat-cell">
-        <span id="stat-avg-alltime" class="stat-value stat-cyan">$0.00</span>
-        <span class="stat-label">Avg. Profit All Time</span>
+        <span id="stat-avg-alltime" class="stat-value stat-cyan">0.0000</span>
+        <span class="stat-label">Avg SOL/Launch</span>
       </div>
       <div class="stat-cell">
-        <span id="stat-avg-today" class="stat-value stat-cyan">$0.00</span>
-        <span class="stat-label">Avg. Profit Today</span>
+        <span id="stat-avg-today" class="stat-value stat-cyan">0.0000</span>
+        <span class="stat-label">Avg SOL/Launch Today</span>
       </div>
       <div class="stat-cell" style="min-width:120px;">
         <canvas id="metrics-histogram" width="120" height="36" style="display:block;border-radius:2px;"></canvas>
@@ -1254,10 +1099,8 @@ const state = {
   launchHistory: { timestamps: [], values: [] },
   launches: [],
   stats: {},
-  pendingQueue: [],          // memes waiting to be signed
   walletPubkey: null,
   startTime: Date.now(),
-  sourceActivity: { confirmed: 0, submission: 0, newsworthy: 0, deadpool: 0 },
 };
 
 const RPC_URL = 'https://api.mainnet-beta.solana.com'; // overridden by config
@@ -1442,18 +1285,6 @@ window.spawnNetworkParticle = function() {
   if (_netParticles.length > NET_MAX + 15) _netParticles.shift();
 };
 
-let _netMaxCycle = 10;
-function updateNetworkGauge() {
-  const pending = state.pendingQueue.filter(m => m._status === 'pending').length;
-  const ratio = Math.min(pending / Math.max(_netMaxCycle, 1), 1);
-  const fill = document.getElementById('net-gauge-fill');
-  const val  = document.getElementById('net-gauge-val');
-  const cnt  = document.getElementById('net-count');
-  if (fill) fill.style.width = (ratio * 100) + '%';
-  if (val)  val.textContent = `F=${pending}/${_netMaxCycle}`;
-  if (cnt)  cnt.textContent = pending;
-}
-
 // ── WebSocket ──────────────────────────────────────────────────────────
 let ws;
 let wsReconnectDelay = 1000;
@@ -1502,86 +1333,6 @@ function handleMessage(msg) {
   }
 }
 
-
-// ── Meme queue ─────────────────────────────────────────────────────────
-function enqueueMeme(meme) {
-  // Avoid duplicates
-  if (state.pendingQueue.some(m => m.meme_url === meme.meme_url)) return;
-  const idx = state.pendingQueue.length;
-  state.pendingQueue.push({ ...meme, _status: 'pending' });
-  renderQueueMini();
-  updateQueueCount();
-  addLog(`New meme queued: ${meme.name} (${meme.ticker}) [${meme.source}]`, 'SCAN');
-  if (window.spawnNetworkParticle) window.spawnNetworkParticle('system');
-}
-
-async function pollNetworkCongestion() {
-  const badge = document.getElementById('pending-count');
-  async function fetch_congestion() {
-    try {
-      const cfgResp = await fetch('/api/config').then(r => r.json());
-      const rpcUrl = cfgResp.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-      const resp = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getRecentPerformanceSamples', params: [1] }),
-      });
-      const data = await resp.json();
-      const sample = data?.result?.[0];
-      if (sample) {
-        const tps = sample.numTransactions / sample.samplePeriodSecs;
-        const score = Math.min(Math.round(tps / 30), 100);
-        badge.textContent = score;
-        badge.style.color = score < 30 ? 'var(--cyan)' : score < 60 ? 'var(--yellow)' : score < 85 ? 'var(--magenta)' : 'var(--red)';
-      }
-    } catch(e) {}
-    setTimeout(fetch_congestion, 6000);
-  }
-  fetch_congestion();
-}
-
-function updateQueueCount() {
-  const pending = state.pendingQueue.filter(m => m._status === 'pending').length;
-  document.getElementById('queue-count').textContent = `${pending} pending`;
-  const sqc = document.getElementById('sign-queue-count');
-  if (sqc) sqc.textContent = pending;
-  updateNetworkGauge();
-}
-
-function renderQueueMini() {
-  const el = document.getElementById('queue-mini-inner');
-  if (!el) return;
-  const signSection = document.getElementById('sign-section');
-  const items = state.pendingQueue.slice(-20).reverse();
-  if (!items.length) {
-    if (signSection) signSection.style.display = 'none';
-    el.innerHTML = '';
-    return;
-  }
-  if (signSection) { signSection.style.display = 'flex'; signSection.style.flexDirection = 'column'; }
-  el.innerHTML = items.map((m, idx) => {
-    const realIdx = state.pendingQueue.indexOf(m);
-    const srcClass = `qm-${m.source}`;
-    const isPending = m._status === 'pending';
-    const isSigning = m._status === 'signing';
-    const isDone    = ['launched', 'dry_run', 'failed'].includes(m._status);
-    let actionHtml = '';
-    if (isPending) {
-      actionHtml = `<span style="color:var(--magenta);font-size:8px;animation:blink 1s infinite;">QUEUED</span>`;
-    } else if (isSigning) {
-      actionHtml = `<span style="color:var(--magenta);font-size:8px;animation:blink 1s infinite;">LAUNCHING…</span>`;
-    } else {
-      const col = m._status === 'launched' || m._status === 'dry_run' ? 'var(--green)' : 'var(--red)';
-      actionHtml = `<span style="color:${col};font-size:8px;font-weight:700;">${m._status.toUpperCase()}</span>`;
-    }
-    return `<div class="qm-row">
-      <span class="qm-badge ${srcClass}">${m.source.slice(0,4).toUpperCase()}</span>
-      <span class="qm-name" title="${escHtml(m.name)}">${escHtml(m.name)}</span>
-      <span class="qm-ticker">${escHtml(m.ticker)}</span>
-      ${actionHtml}
-    </div>`;
-  }).join('');
-}
 
 // ── Wallet / PK modal ─────────────────────────────────────────────────
 function connectWallet() {
@@ -1700,19 +1451,24 @@ function renderLaunches(launches) {
   state.launches = launches;
   const tbody = document.getElementById('launches-body');
   if (!launches.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--dim);text-align:center;padding:12px;">No launches yet</td></tr>';
     return;
   }
-  const srcColors = { confirmed:'var(--green)', submission:'var(--cyan)', newsworthy:'var(--yellow)', deadpool:'var(--red)' };
+  const STATUS_COLOR = {
+    LAUNCHED:  'var(--green)',
+    SIMULATED: 'var(--cyan)',
+    DRY_RUN:   'var(--yellow)',
+    FAILED:    'var(--red)',
+  };
   tbody.innerHTML = launches.slice(0, 20).map(l => {
-    const stClass = l.status === 'FAILED' ? 'st-dead' : 'st-running';
-    const stLabel = l.status === 'FAILED' ? 'DEAD' : 'RUNNING';
-    const pumpUrl = l.mint_address && !l.mint_address.startsWith('DRY') ? `https://pump.fun/coin/${l.mint_address}` : (l.meme_url || '#');
+    const color = STATUS_COLOR[l.status] || 'var(--dim)';
+    const isReal = l.status === 'LAUNCHED' && l.mint_address && !l.mint_address.startsWith('DRY') && !l.mint_address.startsWith('SIM');
+    const pumpUrl = isReal ? `https://pump.fun/coin/${l.mint_address}` : (l.meme_url || '#');
     return `<tr>
       <td class="td-name" title="${escHtml(l.name)}">${escHtml(l.name.slice(0,16))}</td>
       <td class="td-ticker">${escHtml(l.ticker)}</td>
       <td style="color:var(--cyan);font-size:9px;">—</td>
-      <td class="${stClass}">${stLabel}</td>
+      <td style="color:${color};font-weight:700;font-size:10px;letter-spacing:0.5px;">${l.status}</td>
       <td style="color:var(--dim);font-size:10px;">${timeAgo(l.timestamp)}</td>
       <td style="text-align:center;"><a href="${pumpUrl}" target="_blank" title="Open" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
     </tr>`;
@@ -1723,24 +1479,25 @@ function renderLaunches(launches) {
 function updateStats(s) {
   state.stats = s;
 
-  const sol = s.sol_spent || 0;
-  const rate = (s.success_rate || 0) * 100;
-  const today = s.today_launches || 0;
+  const sol     = s.sol_spent       || 0;
+  const total   = s.total_launches  || 0;
+  const today   = s.today_launches  || 0;
+  const realN   = s.n_real_attempts || 0;
+  const ratePct = (s.success_rate || 0) * 100;
 
-  // Banner
-  const pnlEl = document.getElementById('total-launched');
-  pnlEl.textContent = (sol > 0 ? '-' : '+') + '$' + sol.toFixed(3);
-  pnlEl.className = 'pnl-value ' + (sol > 0 ? 'neg' : 'pos');
+  // Banner — honest counts, no fake $
+  document.getElementById('total-launched').textContent = total;
+  document.getElementById('today-launched').textContent = today;
+  document.getElementById('sol-spent-val').textContent  = sol.toFixed(4);
 
-  const todayEl = document.getElementById('today-launched');
-  todayEl.textContent = (today > 0 ? '+' : '') + '$' + today.toFixed(3);
-  todayEl.className = 'pnl-value ' + (today > 0 ? 'pos' : 'neu');
-
-  document.getElementById('sol-spent-val').textContent = sol.toFixed(4);
-
-  const wrEl = document.getElementById('queue-count');
-  wrEl.textContent = rate.toFixed(1) + '%';
-  wrEl.className = 'pnl-value ' + (rate >= 80 ? 'pos' : rate >= 50 ? 'cyan' : 'neg');
+  const srEl = document.getElementById('success-rate');
+  if (realN === 0) {
+    srEl.textContent = '—';
+    srEl.className = 'pnl-value neu';
+  } else {
+    srEl.textContent = ratePct.toFixed(1) + '%';
+    srEl.className = 'pnl-value ' + (ratePct >= 80 ? 'pos' : ratePct >= 50 ? 'cyan' : 'neg');
+  }
 
   // Circuit badge — CLOSED = dry run (safe), OPEN = live
   const badge = document.getElementById('circuit-badge');
@@ -1754,53 +1511,32 @@ function updateStats(s) {
   }
 
   // Stats panel
-  document.getElementById('stat-total').textContent = s.total_launches || 0;
+  document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-today').textContent = today;
-  document.getElementById('stat-ok').textContent = s.n_ok || 0;
-
-  const fail = s.n_fail || 0;
-  const failEl = document.getElementById('stat-fail');
-  failEl.textContent = fail;
-  failEl.className = 'stat-value stat-white';
+  document.getElementById('stat-ok').textContent   = s.n_ok   || 0;
+  document.getElementById('stat-fail').textContent = s.n_fail || 0;
 
   const rateEl = document.getElementById('stat-rate');
-  rateEl.textContent = rate.toFixed(1) + '%';
-  rateEl.className = `stat-value ${rate >= 80 ? 'stat-green' : 'stat-yellow'}`;
+  if (realN === 0) {
+    rateEl.textContent = '—';
+    rateEl.className = 'stat-value stat-cyan';
+  } else {
+    rateEl.textContent = ratePct.toFixed(1) + '%';
+    rateEl.className = `stat-value ${ratePct >= 80 ? 'stat-green' : 'stat-yellow'}`;
+  }
 
   const mb = document.getElementById('mode-badge');
   mb.textContent = s.dry_run ? 'DRY RUN' : '● LIVE';
   mb.className = s.dry_run ? 'mode-dry' : 'mode-live';
 
-  // Scan count
   if (s.scan_count !== undefined)
     document.getElementById('stat-scans').textContent = '#' + s.scan_count;
 
-  // Avg profit (sol_spent proxy — negative = cost, shown as $)
-  const total = s.total_launches || 0;
-  const todayCount = s.today_launches || 0;
-  const avgAll = total > 0 ? (sol / total) : 0;
-  const avgToday = todayCount > 0 ? (sol / todayCount) : 0;
-  document.getElementById('stat-avg-alltime').textContent = '$' + avgAll.toFixed(3);
-  document.getElementById('stat-avg-today').textContent   = '$' + avgToday.toFixed(3);
-
-  // ── Kelly Gauge ──────────────────────────────────────────────────────
-  const winRate = s.success_rate || 0;
-  const lossRate = 1 - winRate;
-  const avgWin = avgAll > 0 ? avgAll : 0.001;
-  const kellyF = lossRate > 0 ? Math.max(0, (winRate / lossRate) - (lossRate / (winRate * avgWin + 0.001))) : 0;
-  const kellyFClamped = Math.min(kellyF, 1);
-  document.getElementById('kelly-f-val').textContent = kellyFClamped.toFixed(3);
-  // Map 0→1 kelly fraction to cursor position; store as target for live animation
-  window._kellyTarget = Math.min(100, Math.max(0, kellyFClamped * 50 + 25));
-
-  // ── Capital Velocity ─────────────────────────────────────────────────
-  const scanCount = s.scan_count || 0;
-  const solPerCycle = scanCount > 0 ? sol / scanCount : 0;
-  const velocityRatio = solPerCycle > 0 ? Math.round(sol / solPerCycle) : 0;
-  document.getElementById('vel-cycles').textContent    = scanCount;
-  document.getElementById('vel-sol-cycle').textContent = solPerCycle.toFixed(4);
-  document.getElementById('vel-deployed').innerHTML  = _solIcon(9,8,'slg2') + sol.toFixed(4);
-  document.getElementById('vel-ratio').textContent     = total > 0 ? total : 0;
+  // Avg SOL per launch (real cost / launch count)
+  const avgAll   = total > 0 ? (sol / total) : 0;
+  const avgToday = today > 0 ? (sol / today) : 0;
+  document.getElementById('stat-avg-alltime').textContent = avgAll.toFixed(4);
+  document.getElementById('stat-avg-today').textContent   = avgToday.toFixed(4);
 }
 
 // ── Scan Clock ─────────────────────────────────────────────────────────
@@ -1840,21 +1576,6 @@ let _lastDisplayedSec = -1;
   requestAnimationFrame(rafScanClock);
 })();
 
-// ── Kelly live animation ────────────────────────────────────────────────
-window._kellyTarget = 50;
-(function animateKelly() {
-  const cursor = document.getElementById('kelly-cursor');
-  const fVal   = document.getElementById('kelly-f-val');
-  if (cursor) {
-    const t = performance.now() / 1000;
-    const wobble = Math.sin(t * 0.8) * 1.4 + Math.sin(t * 1.7) * 0.6;
-    const pos = Math.min(98, Math.max(2, window._kellyTarget + wobble));
-    cursor.style.left = pos + '%';
-    if (fVal) fVal.textContent = ((pos - 25) / 50).toFixed(3);
-  }
-  requestAnimationFrame(animateKelly);
-})();
-
 // ── Metrics Histogram ────────────────────────────────────────────────────
 (function() {
   const canvas = document.getElementById('metrics-histogram');
@@ -1875,17 +1596,12 @@ window._kellyTarget = 50;
     redraw();
   };
 
-  const PLACEHOLDER = [1,2,1,3,2,4,2,3,1,2,3,2,4,3,2,1,3,2,4,3];
-
   function redraw() {
     ctx.clearRect(0, 0, W, H);
-    const raw  = [...window._histData, window._histPending];
-    const hasReal = raw.some(v => v > 0);
-    const data = hasReal ? raw : PLACEHOLDER;
-    const isPlaceholder = !hasReal;
-    const max = Math.max(...data, 1);
-    const n   = data.length;
-    const gap = 2;
+    const data = [...window._histData, window._histPending];
+    const max  = Math.max(...data, 1);
+    const n    = data.length;
+    const gap  = 2;
     const barW = Math.max(2, Math.floor((W - gap * (n - 1)) / n));
 
     for (let g = 1; g <= 3; g++) {
@@ -1895,10 +1611,11 @@ window._kellyTarget = 50;
     }
 
     data.forEach((val, i) => {
-      const isLive = !isPlaceholder && i === n - 1;
+      if (val <= 0) return;
+      const isLive = i === n - 1;
       const barH = Math.max(2, Math.round((val / max) * (H - 2)));
       const x = i * (barW + gap);
-      const alpha = isPlaceholder ? 0.18 : (0.35 + (i / n) * 0.65);
+      const alpha = 0.35 + (i / n) * 0.65;
       ctx.fillStyle = `rgba(0,229,255,${alpha})`;
       ctx.shadowColor = isLive ? CYAN : 'transparent';
       ctx.shadowBlur  = isLive ? 6 : 0;
@@ -1909,114 +1626,6 @@ window._kellyTarget = 50;
 
   redraw();
 })();
-
-// ── DNA Chart ────────────────────────────────────────────────────────────
-(function() {
-  const canvas = document.getElementById('dna-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const RUNGS = 10;
-  const CYAN = '#00e5ff', MAGENTA = '#d946ef', DIM = '#1e3a4a';
-  let t = 0;
-  // pulse array: when a signal fires we inject a brightness pulse
-  const pulses = [];
-
-  window.dnaSignalPulse = function() { pulses.push({ t: 0 }); };
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    t += 0.025;
-
-    // draw rungs first (behind strands)
-    for (let i = 0; i <= RUNGS; i++) {
-      const x = (i / RUNGS) * W;
-      const phase = (i / RUNGS) * Math.PI * 2 + t;
-      const y1 = H / 2 + Math.sin(phase) * (H / 2 - 6);
-      const y2 = H / 2 + Math.sin(phase + Math.PI) * (H / 2 - 6);
-      const depth = (Math.sin(phase) + 1) / 2; // 0=back, 1=front
-      // pulse brightness
-      let pBoost = 0;
-      pulses.forEach(p => { pBoost = Math.max(pBoost, Math.max(0, 1 - p.t / 40)); });
-      const alpha = 0.15 + depth * 0.25 + pBoost * 0.4;
-      ctx.beginPath();
-      ctx.moveTo(x, y1);
-      ctx.lineTo(x, y2);
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-      ctx.lineWidth = 1 + depth * 1.5;
-      ctx.stroke();
-      // dot at each end
-      const dotR = 1.5 + depth * 1.5;
-      ctx.beginPath();
-      ctx.arc(x, y1, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = CYAN;
-      ctx.globalAlpha = 0.5 + depth * 0.5 + pBoost * 0.5;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, y2, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = MAGENTA;
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // strand 1
-    ctx.beginPath();
-    for (let x = 0; x <= W; x++) {
-      const phase = (x / W) * Math.PI * 2 + t;
-      const y = H / 2 + Math.sin(phase) * (H / 2 - 6);
-      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.strokeStyle = CYAN;
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = CYAN;
-    ctx.shadowBlur = 6;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // strand 2
-    ctx.beginPath();
-    for (let x = 0; x <= W; x++) {
-      const phase = (x / W) * Math.PI * 2 + t + Math.PI;
-      const y = H / 2 + Math.sin(phase) * (H / 2 - 6);
-      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.strokeStyle = MAGENTA;
-    ctx.lineWidth = 1.5;
-    ctx.shadowColor = MAGENTA;
-    ctx.shadowBlur = 6;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // age pulses
-    for (let i = pulses.length - 1; i >= 0; i--) {
-      pulses[i].t++;
-      if (pulses[i].t > 60) pulses.splice(i, 1);
-    }
-
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-function updateLastSignal(meme) {
-  if (window.dnaSignalPulse) window.dnaSignalPulse();
-}
-
-// ── Source heatmap ─────────────────────────────────────────────────────
-const SOURCES = [
-  { key: 'confirmed',  label: 'CONFIRMED',  cls: 'confirmed' },
-  { key: 'submission', label: 'SUBMISSION',  cls: 'submission' },
-  { key: 'newsworthy', label: 'NEWSWORTHY',  cls: 'newsworthy' },
-  { key: 'deadpool',   label: 'DEADPOOL',    cls: 'deadpool' },
-];
-function renderHeatmap() {
-  const c = document.getElementById('src-confirmed');
-  const s = document.getElementById('src-submission');
-  const n = document.getElementById('src-newsworthy');
-  if (c) c.textContent = state.sourceActivity['confirmed'] || 0;
-  if (s) s.textContent = state.sourceActivity['submission'] || 0;
-  if (n) n.textContent = state.sourceActivity['newsworthy'] || 0;
-}
 
 // ── Clock & uptime ─────────────────────────────────────────────────────
 function updateClock() {
@@ -2039,10 +1648,6 @@ async function pollStats() {
     ]);
     updateStats(s);
     updateChart(h);
-    if (cfg.MAX_LAUNCHES_PER_CYCLE) {
-      _netMaxCycle = cfg.MAX_LAUNCHES_PER_CYCLE;
-      updateNetworkGauge();
-    }
     if (cfg.SCAN_INTERVAL_SECONDS) { _scanInterval = cfg.SCAN_INTERVAL_SECONDS; }
   } catch(e) {}
 }
@@ -2117,9 +1722,7 @@ function timeAgo(ts) {
 
 // ── Init ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  renderHeatmap();
   initNetwork();
-  pollNetworkCongestion();
   connectWS();
   setInterval(updateClock, 1000);
   setInterval(pollStats, 10000);

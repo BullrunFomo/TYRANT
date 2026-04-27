@@ -115,15 +115,18 @@ async def get_stats():
     today = await db.get_today_launches()
     sol = await db.get_total_sol_spent()
     launches = await db.get_launches(200)
-    n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "DRY_RUN"))
+    n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED", "DRY_RUN"))
     n_fail = sum(1 for l in launches if l.status == "FAILED")
+    n_real_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED"))
+    n_real_attempts = n_real_ok + n_fail
     return {
         "total_launches": total,
         "today_launches": len(today),
         "sol_spent": sol,
         "n_ok": n_ok,
         "n_fail": n_fail,
-        "success_rate": n_ok / max(n_ok + n_fail, 1),
+        "n_real_attempts": n_real_attempts,
+        "success_rate": (n_real_ok / n_real_attempts) if n_real_attempts else 0.0,
         "dry_run": config.DRY_RUN,
     }
 
@@ -232,8 +235,10 @@ async def websocket_endpoint(ws: WebSocket):
         sol = await db.get_total_sol_spent()
         launches = await db.get_launches(30)
         history = await db.get_launch_history(200)
-        n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "DRY_RUN"))
+        n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED", "DRY_RUN"))
         n_fail = sum(1 for l in launches if l.status == "FAILED")
+        n_real_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED"))
+        n_real_attempts = n_real_ok + n_fail
 
         await ws.send_text(json.dumps({
             "type": "init",
@@ -243,7 +248,8 @@ async def websocket_endpoint(ws: WebSocket):
                 "sol_spent": sol,
                 "n_ok": n_ok,
                 "n_fail": n_fail,
-                "success_rate": n_ok / max(n_ok + n_fail, 1),
+                "n_real_attempts": n_real_attempts,
+                "success_rate": (n_real_ok / n_real_attempts) if n_real_attempts else 0.0,
                 "dry_run": config.DRY_RUN,
             },
             "pnl_history": {

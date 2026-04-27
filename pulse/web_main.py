@@ -107,8 +107,10 @@ async def _push_stats(scan_count: int = 0):
     sol_spent = await db.get_total_sol_spent()
     history = await db.get_launch_history(200)
 
-    n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "DRY_RUN"))
+    n_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED", "DRY_RUN"))
     n_fail = sum(1 for l in launches if l.status == "FAILED")
+    n_real_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED"))
+    n_real_attempts = n_real_ok + n_fail
 
     await emit_stats({
         "total_launches": total,
@@ -116,7 +118,8 @@ async def _push_stats(scan_count: int = 0):
         "sol_spent": sol_spent,
         "n_ok": n_ok,
         "n_fail": n_fail,
-        "success_rate": n_ok / max(n_ok + n_fail, 1),
+        "n_real_attempts": n_real_attempts,
+        "success_rate": (n_real_ok / n_real_attempts) if n_real_attempts else 0.0,
         "dry_run": config.DRY_RUN,
         "scan_count": scan_count,
     })
