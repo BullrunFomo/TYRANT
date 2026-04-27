@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -13,8 +14,14 @@ from pulse import config
 
 logger = logging.getLogger(__name__)
 
-PUMPFUN_IPFS_URL = "https://pump.fun/api/ipfs"
-PUMPFUN_TRADE_URL = "https://pump.fun/api/trade-local"
+PINATA_UPLOAD_URL = "https://uploads.pinata.cloud/v3/files"
+PUMPFUN_TRADE_URL = "https://pumpportal.fun/api/trade-local"
+
+
+def _ipfs_url(cid: str) -> str:
+    """Build a gateway URL for a CID — dedicated Pinata gateway if configured."""
+    gateway = config.PINATA_GATEWAY or "ipfs.io"
+    return f"https://{gateway}/ipfs/{cid}"
 
 HEADERS = {
     "User-Agent": (
@@ -70,6 +77,41 @@ async def _download_image(session: aiohttp.ClientSession, image_url: str) -> Opt
     return None
 
 
+async def _pinata_upload(
+    session: aiohttp.ClientSession,
+    file_bytes: bytes,
+    filename: str,
+    content_type: str,
+) -> Optional[str]:
+    """Upload bytes to Pinata IPFS. Returns the CID."""
+    if not config.PINATA_JWT:
+        logger.error("PINATA_JWT not set — get a free key at https://pinata.cloud")
+        return None
+    form = aiohttp.FormData()
+    form.add_field("file", file_bytes, filename=filename, content_type=content_type)
+    form.add_field("network", "public")
+    try:
+        async with session.post(
+            PINATA_UPLOAD_URL,
+            data=form,
+            headers={"Authorization": f"Bearer {config.PINATA_JWT}"},
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            if resp.status not in (200, 201):
+                body = await resp.text()
+                logger.error("Pinata upload failed %s: %s", resp.status, body[:300])
+                return None
+            data = await resp.json()
+            cid = (data.get("data") or {}).get("cid", "")
+            if not cid:
+                logger.error("Pinata response missing cid: %s", data)
+                return None
+            return cid
+    except Exception as exc:
+        logger.error("Pinata upload error: %s", exc)
+        return None
+
+
 async def _upload_metadata(
     session: aiohttp.ClientSession,
     name: str,
@@ -78,54 +120,39 @@ async def _upload_metadata(
     image_data: Optional[bytes],
     image_url: str,
 ) -> Optional[str]:
-    """Upload token metadata + image to pump.fun IPFS. Returns metadataUri."""
-    form = aiohttp.FormData()
-    form.add_field("name", name[:32])
-    form.add_field("symbol", ticker[:10])
-    form.add_field("description", description[:500] or f"Auto-launched meme coin: {name}")
-    form.add_field("showName", "true")
-
+    """Upload image + metadata JSON to Pinata. Returns the metadata gateway URI."""
+    # 1. Image → Pinata (or fall back to original source URL if download failed)
     if image_data:
-        # Detect content type from bytes magic
-        content_type = "image/jpeg"
+        content_type, ext = "image/jpeg", "jpg"
         if image_data[:4] == b"\x89PNG":
-            content_type = "image/png"
+            content_type, ext = "image/png", "png"
         elif image_data[:3] == b"GIF":
-            content_type = "image/gif"
+            content_type, ext = "image/gif", "gif"
         elif image_data[:4] == b"RIFF":
-            content_type = "image/webp"
+            content_type, ext = "image/webp", "webp"
+        img_cid = await _pinata_upload(session, image_data, f"meme.{ext}", content_type)
+        if not img_cid:
+            return None
+        image_field = _ipfs_url(img_cid)
+    else:
+        image_field = image_url
 
-        form.add_field(
-            "file",
-            image_data,
-            filename="meme.jpg",
-            content_type=content_type,
-        )
-    elif image_url:
-        # Pass image URL as a text field as fallback
-        form.add_field("imageUrl", image_url)
-
-    try:
-        async with session.post(
-            PUMPFUN_IPFS_URL,
-            data=form,
-            headers=HEADERS,
-            timeout=aiohttp.ClientTimeout(total=30),
-        ) as resp:
-            if resp.status != 200:
-                body = await resp.text()
-                logger.error("IPFS upload failed %s: %s", resp.status, body[:200])
-                return None
-            data = await resp.json()
-            uri = data.get("metadataUri", "")
-            if not uri:
-                logger.error("IPFS response missing metadataUri: %s", data)
-                return None
-            logger.info("Metadata uploaded: %s", uri)
-            return uri
-    except Exception as exc:
-        logger.error("IPFS upload error: %s", exc)
+    # 2. Metadata JSON → Pinata
+    metadata = {
+        "name": name[:32],
+        "symbol": ticker[:10],
+        "description": description[:500] or f"Auto-launched meme coin: {name}",
+        "image": image_field,
+        "showName": True,
+    }
+    meta_cid = await _pinata_upload(
+        session, json.dumps(metadata).encode("utf-8"), "metadata.json", "application/json"
+    )
+    if not meta_cid:
         return None
+    uri = _ipfs_url(meta_cid)
+    logger.info("Metadata uploaded: %s", uri)
+    return uri
 
 
 async def _build_create_tx(
@@ -157,12 +184,16 @@ async def _build_create_tx(
         async with session.post(
             PUMPFUN_TRADE_URL,
             json=payload,
-            headers={**HEADERS, "Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "User-Agent": "tyrant-bot/1.0"},
             timeout=aiohttp.ClientTimeout(total=30),
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                logger.error("TX build failed %s: %s", resp.status, body[:200])
+                # pumpportal returns the real error in the HTTP reason phrase
+                logger.error(
+                    "TX build failed %s %s — body=%s payload=%s",
+                    resp.status, resp.reason, body[:500], payload,
+                )
                 return None
             return await resp.read()
     except Exception as exc:

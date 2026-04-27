@@ -157,6 +157,16 @@ async def mark_meme_seen(url: str) -> None:
         await db.commit()
 
 
+async def count_failed_launches(meme_url: str) -> int:
+    db = await get_db()
+    rows = await db.execute_fetchall(
+        "SELECT COUNT(*) AS cnt FROM launched_memes "
+        "WHERE meme_url = ? AND status = 'FAILED'",
+        (meme_url,),
+    )
+    return int(rows[0]["cnt"]) if rows else 0
+
+
 # ── Launch history (for chart) ─────────────────────────────────────────────────
 
 async def snapshot_launch_count() -> None:

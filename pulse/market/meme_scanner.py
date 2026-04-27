@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 
 async def scan_for_new_memes() -> List[MemeEntry]:
     """
-    Scrape all KYM categories and return unseen memes, marking them seen immediately.
-    Backfills missing image_url via og:image so the caller always has one.
-    The caller (web_main) drives the pump.fun launch loop.
+    Scrape all KYM categories and return entries not yet successfully launched.
+    Backfills missing image_url via og:image. The caller (web_main) marks a
+    meme seen only after a successful launch, so failed attempts retry next cycle.
     """
     async with aiohttp.ClientSession() as session:
         entries = await scrape_all_categories(session)
@@ -25,10 +25,9 @@ async def scan_for_new_memes() -> List[MemeEntry]:
         for entry in entries:
             if await db.is_meme_seen(entry.url):
                 continue
-            await db.mark_meme_seen(entry.url)
             if not entry.image_url:
                 entry.image_url = await fetch_og_image(session, entry.url) or ""
             new_entries.append(entry)
 
-    logger.info("KYM scraped %d total, %d new", len(entries), len(new_entries))
+    logger.info("KYM scraped %d total, %d unprocessed", len(entries), len(new_entries))
     return new_entries
