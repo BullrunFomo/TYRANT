@@ -1,6 +1,7 @@
-"""pump.fun token launcher — uploads metadata to IPFS and creates a Solana token."""
+"""pump.fun token launcher — uploads metadata to IPFS, creates token, dev-buys, then sells."""
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -19,9 +20,9 @@ PUMPFUN_TRADE_URL = "https://pumpportal.fun/api/trade-local"
 
 
 def _ipfs_url(cid: str) -> str:
-    """Build a gateway URL for a CID — dedicated Pinata gateway if configured."""
     gateway = config.PINATA_GATEWAY or "ipfs.io"
     return f"https://{gateway}/ipfs/{cid}"
+
 
 HEADERS = {
     "User-Agent": (
@@ -40,19 +41,16 @@ class LaunchResult:
     metadata_uri: str = ""
     error: str = ""
     sol_spent: float = 0.0
+    sell_sig: str = ""
 
 
 def make_ticker(name: str) -> str:
-    """Generate a pump.fun-compatible ticker symbol from a meme name."""
     clean = re.sub(r"[^a-zA-Z0-9\s]", "", name).strip()
     words = clean.split()
     if not words:
         return "MEME"
-
     if len(words) == 1:
         return words[0][:6].upper()
-
-    # Multi-word: take initials, then pad with extra chars if too short
     initials = "".join(w[0] for w in words if w)[:6].upper()
     if len(initials) < 3 and len(words) >= 2:
         return (words[0][:3] + words[1][:3])[:6].upper()
@@ -60,14 +58,11 @@ def make_ticker(name: str) -> str:
 
 
 async def _download_image(session: aiohttp.ClientSession, image_url: str) -> Optional[bytes]:
-    """Download image bytes from URL."""
     if not image_url:
         return None
     try:
         async with session.get(
-            image_url,
-            headers=HEADERS,
-            timeout=aiohttp.ClientTimeout(total=15),
+            image_url, headers=HEADERS, timeout=aiohttp.ClientTimeout(total=15)
         ) as resp:
             if resp.status == 200:
                 return await resp.read()
@@ -83,7 +78,6 @@ async def _pinata_upload(
     filename: str,
     content_type: str,
 ) -> Optional[str]:
-    """Upload bytes to Pinata IPFS. Returns the CID."""
     if not config.PINATA_JWT:
         logger.error("PINATA_JWT not set — get a free key at https://pinata.cloud")
         return None
@@ -120,8 +114,6 @@ async def _upload_metadata(
     image_data: Optional[bytes],
     image_url: str,
 ) -> Optional[str]:
-    """Upload image + metadata JSON to Pinata. Returns the metadata gateway URI."""
-    # 1. Image → Pinata (or fall back to original source URL if download failed)
     if image_data:
         content_type, ext = "image/jpeg", "jpg"
         if image_data[:4] == b"\x89PNG":
@@ -137,7 +129,6 @@ async def _upload_metadata(
     else:
         image_field = image_url
 
-    # 2. Metadata JSON → Pinata
     metadata = {
         "name": name[:32],
         "symbol": ticker[:10],
@@ -155,31 +146,7 @@ async def _upload_metadata(
     return uri
 
 
-async def _build_create_tx(
-    session: aiohttp.ClientSession,
-    wallet_pubkey: str,
-    mint_pubkey: str,
-    name: str,
-    ticker: str,
-    metadata_uri: str,
-) -> Optional[bytes]:
-    """Ask pump.fun to build the create transaction. Returns raw bytes."""
-    payload = {
-        "publicKey": wallet_pubkey,
-        "action": "create",
-        "tokenMetadata": {
-            "name": name[:32],
-            "symbol": ticker[:10],
-            "uri": metadata_uri,
-        },
-        "mint": mint_pubkey,
-        "denominatedInSol": "true",
-        "amount": config.PUMPFUN_INITIAL_BUY_SOL,
-        "slippage": config.PUMPFUN_SLIPPAGE,
-        "priorityFee": config.PUMPFUN_PRIORITY_FEE,
-        "pool": "pump",
-    }
-
+async def _build_tx(session: aiohttp.ClientSession, payload: dict) -> Optional[bytes]:
     try:
         async with session.post(
             PUMPFUN_TRADE_URL,
@@ -189,7 +156,6 @@ async def _build_create_tx(
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                # pumpportal returns the real error in the HTTP reason phrase
                 logger.error(
                     "TX build failed %s %s — body=%s payload=%s",
                     resp.status, resp.reason, body[:500], payload,
@@ -201,44 +167,36 @@ async def _build_create_tx(
         return None
 
 
-async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
-    """Sign the transaction and submit via RPC. Returns signature."""
+async def _sign_and_send(tx_bytes: bytes, signers: list) -> Optional[str]:
+    """Sign with all provided signers and submit (or simulate) via RPC."""
     try:
         from solders.transaction import VersionedTransaction
 
         tx = VersionedTransaction.from_bytes(tx_bytes)
-        signed = VersionedTransaction(tx.message, [wallet_kp, mint_kp])
+        signed = VersionedTransaction(tx.message, signers)
         tx_b64 = base64.b64encode(bytes(signed)).decode()
 
         if config.SIMULATE:
             rpc_payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
+                "jsonrpc": "2.0", "id": 1,
                 "method": "simulateTransaction",
-                "params": [
-                    tx_b64,
-                    {
-                        "encoding": "base64",
-                        "commitment": "confirmed",
-                        "sigVerify": True,
-                        "replaceRecentBlockhash": False,
-                    },
-                ],
+                "params": [tx_b64, {
+                    "encoding": "base64",
+                    "commitment": "confirmed",
+                    "sigVerify": True,
+                    "replaceRecentBlockhash": False,
+                }],
             }
         else:
             rpc_payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
+                "jsonrpc": "2.0", "id": 1,
                 "method": "sendTransaction",
-                "params": [
-                    tx_b64,
-                    {
-                        "encoding": "base64",
-                        "skipPreflight": False,
-                        "preflightCommitment": "confirmed",
-                        "maxRetries": 3,
-                    },
-                ],
+                "params": [tx_b64, {
+                    "encoding": "base64",
+                    "skipPreflight": False,
+                    "preflightCommitment": "confirmed",
+                    "maxRetries": 3,
+                }],
             }
 
         async with aiohttp.ClientSession() as rpc_session:
@@ -249,9 +207,7 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
             ) as resp:
                 result = await resp.json()
                 if "error" in result:
-                    logger.error("RPC %s error: %s",
-                                "simulate" if config.SIMULATE else "send",
-                                result["error"])
+                    logger.error("RPC error: %s", result["error"])
                     return None
                 if config.SIMULATE:
                     sim = result.get("result", {}).get("value", {})
@@ -259,8 +215,7 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
                         logger.error("Simulation failed: err=%s logs=%s",
                                      sim.get("err"), sim.get("logs", [])[-5:])
                         return None
-                    logger.info("TX simulated OK: units=%s logs_tail=%s",
-                                sim.get("unitsConsumed"), sim.get("logs", [])[-3:])
+                    logger.info("TX simulated OK: units=%s", sim.get("unitsConsumed"))
                     return "SIM_OK"
                 sig = result.get("result", "")
                 logger.info("TX sent: %s", sig)
@@ -269,6 +224,75 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
     except Exception as exc:
         logger.error("Sign/send error: %s", exc)
         return None
+
+
+async def _get_token_balance(wallet_pubkey: str, mint_pubkey: str) -> Optional[int]:
+    """Returns raw token amount (with 6 decimals) held by wallet, or None on error."""
+    payload = {
+        "jsonrpc": "2.0", "id": 1,
+        "method": "getTokenAccountsByOwner",
+        "params": [
+            wallet_pubkey,
+            {"mint": mint_pubkey},
+            {"encoding": "jsonParsed"},
+        ],
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                config.SOLANA_RPC_URL,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                data = await resp.json()
+                accounts = data.get("result", {}).get("value", [])
+                if not accounts:
+                    return None
+                amount_str = (
+                    accounts[0]
+                    .get("account", {})
+                    .get("data", {})
+                    .get("parsed", {})
+                    .get("info", {})
+                    .get("tokenAmount", {})
+                    .get("amount", "0")
+                )
+                return int(amount_str)
+    except Exception as exc:
+        logger.error("Token balance fetch error: %s", exc)
+        return None
+
+
+async def _sell_all(wallet_pubkey: str, mint_pubkey: str, wallet_kp) -> Optional[str]:
+    """Fetch token balance and sell 100% via pumpportal. Returns tx sig or None."""
+    logger.info("Fetching token balance for dev-sell...")
+    balance = await _get_token_balance(wallet_pubkey, mint_pubkey)
+    if not balance or balance == 0:
+        logger.warning("Dev-sell: no tokens found in wallet, skipping")
+        return None
+
+    logger.info("Dev-sell: selling %d raw tokens for %s", balance, mint_pubkey)
+
+    async with aiohttp.ClientSession() as session:
+        tx_bytes = await _build_tx(session, {
+            "publicKey": wallet_pubkey,
+            "action": "sell",
+            "mint": mint_pubkey,
+            "denominatedInSol": "false",
+            "amount": balance,
+            "slippage": config.PUMPFUN_SLIPPAGE,
+            "priorityFee": config.PUMPFUN_PRIORITY_FEE,
+            "pool": "pump",
+        })
+
+    if not tx_bytes:
+        logger.error("Dev-sell TX build failed")
+        return None
+
+    sig = await _sign_and_send(tx_bytes, [wallet_kp])
+    if sig:
+        logger.info("Dev-sell TX: %s", sig)
+    return sig
 
 
 async def launch_token(
@@ -280,8 +304,9 @@ async def launch_token(
     """
     Full pump.fun token launch:
     1. Download meme image
-    2. Upload metadata + image to pump.fun IPFS
-    3. Build, sign and submit create transaction
+    2. Upload metadata + image to Pinata IPFS
+    3. Build, sign, submit create tx (with 0.1 SOL dev buy bundled)
+    4. Wait DEV_SELL_DELAY_SECONDS, then sell entire position
     """
     if config.DRY_RUN:
         logger.info("[DRY RUN] Would launch: %s (%s)", name, ticker)
@@ -297,47 +322,69 @@ async def launch_token(
         return LaunchResult(success=False, error="No wallet configured — paste your private key in the dashboard")
 
     try:
-        from solders.keypair import Keypair
-        import json as _json
+        from solders.keypair import Keypair as SoldersKeypair
 
         raw = config.SOLANA_PRIVATE_KEY.strip()
-        if raw.startswith('['):
-            wallet_kp = Keypair.from_bytes(bytes(_json.loads(raw)))
+        if raw.startswith("["):
+            wallet_kp = SoldersKeypair.from_bytes(bytes(json.loads(raw)))
         else:
-            wallet_kp = Keypair.from_base58_string(raw)
-        mint_kp = Keypair()
+            wallet_kp = SoldersKeypair.from_base58_string(raw)
+        mint_kp = SoldersKeypair()
         wallet_pubkey = str(wallet_kp.pubkey())
         mint_pubkey = str(mint_kp.pubkey())
     except Exception as exc:
         return LaunchResult(success=False, error=f"Keypair error: {exc}")
 
     async with aiohttp.ClientSession() as session:
-        # 1. Download image
         image_data = await _download_image(session, image_url)
 
-        # 2. Upload metadata
         metadata_uri = await _upload_metadata(
             session, name, ticker, description, image_data, image_url
         )
         if not metadata_uri:
             return LaunchResult(success=False, error="IPFS upload failed")
 
-        # 3. Build transaction
-        tx_bytes = await _build_create_tx(
-            session, wallet_pubkey, mint_pubkey, name, ticker, metadata_uri
-        )
+        # Create tx bundles the dev buy in the same transaction
+        tx_bytes = await _build_tx(session, {
+            "publicKey": wallet_pubkey,
+            "action": "create",
+            "tokenMetadata": {
+                "name": name[:32],
+                "symbol": ticker[:10],
+                "uri": metadata_uri,
+            },
+            "mint": mint_pubkey,
+            "denominatedInSol": "true",
+            "amount": config.DEV_BUY_SOL,
+            "slippage": config.PUMPFUN_SLIPPAGE,
+            "priorityFee": config.PUMPFUN_PRIORITY_FEE,
+            "pool": "pump",
+        })
         if not tx_bytes:
             return LaunchResult(success=False, error="TX build failed")
 
-    # 4. Sign and send (separate session for RPC)
-    sig = await _sign_and_send(tx_bytes, wallet_kp, mint_kp)
+    sig = await _sign_and_send(tx_bytes, [wallet_kp, mint_kp])
     if not sig:
         return LaunchResult(success=False, error="TX submission failed")
+
+    sol_spent = 0.0 if config.SIMULATE else (config.DEV_BUY_SOL + config.PUMPFUN_PRIORITY_FEE)
+
+    # ── Dev sell after delay ──────────────────────────────────────────────────
+    sell_sig = ""
+    if not config.SIMULATE:
+        logger.info("Dev-buy confirmed. Waiting %ds before selling...", config.DEV_SELL_DELAY_SECONDS)
+        await asyncio.sleep(config.DEV_SELL_DELAY_SECONDS)
+        sell_sig = await _sell_all(wallet_pubkey, mint_pubkey, wallet_kp) or ""
+        if sell_sig:
+            logger.info("Dev-sell complete: %s", sell_sig)
+        else:
+            logger.warning("Dev-sell failed or skipped for %s", mint_pubkey)
 
     return LaunchResult(
         success=True,
         tx_sig=sig,
         mint_address=mint_pubkey,
         metadata_uri=metadata_uri,
-        sol_spent=0.0 if config.SIMULATE else (config.PUMPFUN_INITIAL_BUY_SOL + config.PUMPFUN_PRIORITY_FEE),
+        sol_spent=sol_spent,
+        sell_sig=sell_sig,
     )
