@@ -677,8 +677,8 @@
     <span id="today-launched" class="pnl-value cyan">0</span>
   </div>
   <div class="pnl-item">
-    <span class="pnl-label">SOL SPENT</span>
-    <span id="sol-spent" class="pnl-value neu"><svg width="13" height="11" viewBox="0 0 397.7 311.7" style="vertical-align:middle;margin-right:3px;"><defs><linearGradient id="slg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9945FF"/><stop offset="50%" stop-color="#8752F3"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1z" fill="url(#slg)"/></svg><span id="sol-spent-val">0.0000</span></span>
+    <span class="pnl-label">EQUITY</span>
+    <span id="equity" class="pnl-value neu"><svg width="13" height="11" viewBox="0 0 397.7 311.7" style="vertical-align:middle;margin-right:3px;"><defs><linearGradient id="slg" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="#9945FF"/><stop offset="50%" stop-color="#8752F3"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1z" fill="url(#slg)"/><path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1z" fill="url(#slg)"/></svg><span id="equity-val">—</span></span>
   </div>
   <div class="pnl-item">
     <span class="pnl-label">SUCCESS RATE</span>
@@ -1479,16 +1479,14 @@ function renderLaunches(launches) {
 function updateStats(s) {
   state.stats = s;
 
-  const sol     = s.sol_spent       || 0;
   const total   = s.total_launches  || 0;
   const today   = s.today_launches  || 0;
   const realN   = s.n_real_attempts || 0;
   const ratePct = (s.success_rate || 0) * 100;
 
-  // Banner — honest counts, no fake $
+  // Banner
   document.getElementById('total-launched').textContent = total;
   document.getElementById('today-launched').textContent = today;
-  document.getElementById('sol-spent-val').textContent  = sol.toFixed(4);
 
   const srEl = document.getElementById('success-rate');
   if (realN === 0) {
@@ -1722,11 +1720,23 @@ function timeAgo(ts) {
 
 // ── Init ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  async function pollEquity() {
+    try {
+      const data = await fetch('/api/wallet-balance').then(r => r.json());
+      const el = document.getElementById('equity-val');
+      if (!el) return;
+      if (data.balance == null) { el.textContent = '—'; return; }
+      el.textContent = Number(data.balance).toFixed(4);
+    } catch (_) {}
+  }
+
   initNetwork();
   connectWS();
   setInterval(updateClock, 1000);
   setInterval(pollStats, 10000);
+  setInterval(pollEquity, 10000);
   pollStats();
+  pollEquity();
   updateClock();
   addLog('TYRANT//BOT dashboard loaded', 'SYSTEM');
   addLog('Connecting to launch engine…', 'SYSTEM');

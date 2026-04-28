@@ -148,6 +148,41 @@ async def get_pnl_history():
     }
 
 
+@app.get("/api/wallet-balance")
+async def get_wallet_balance():
+    """Return the SOL balance of the configured wallet, or null if no wallet set."""
+    if not config.SOLANA_PRIVATE_KEY:
+        return {"balance": None}
+    try:
+        import json as _json
+        import aiohttp
+        from solders.keypair import Keypair
+
+        raw = config.SOLANA_PRIVATE_KEY.strip()
+        if raw.startswith("["):
+            kp = Keypair.from_bytes(bytes(_json.loads(raw)))
+        else:
+            kp = Keypair.from_base58_string(raw)
+        pubkey = str(kp.pubkey())
+
+        payload = {
+            "jsonrpc": "2.0", "id": 1,
+            "method": "getBalance",
+            "params": [pubkey, {"commitment": "confirmed"}],
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                config.SOLANA_RPC_URL,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                data = await resp.json()
+                lamports = data.get("result", {}).get("value", 0)
+                return {"balance": lamports / 1_000_000_000, "pubkey": pubkey}
+    except Exception as exc:
+        return {"balance": None, "error": str(exc)}
+
+
 @app.get("/api/config")
 async def get_config_endpoint():
     return {
