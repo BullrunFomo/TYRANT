@@ -51,9 +51,13 @@ _ASSOC_TOKEN_PROGRAM = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"   # update
 _SYSTEM_PROGRAM      = "11111111111111111111111111111111"
 _COMPUTE_BUDGET      = "ComputeBudget111111111111111111111111111111"
 
-# 8 breaking-upgrade fee recipients added 2026-04-28 — one is appended (writable)
-# after bonding-curve-v2 on every buy/sell. Pick one at random per tx.
-_BREAKING_FEE_RECIPIENTS = [
+# Buyback fee recipients — the on-chain pump program (newer than the public IDL)
+# requires all 8 of these to be appended as `remaining_accounts` on every buy/sell.
+# Sourced from Global.buyback_fee_recipients[8] at PDA "global". Omitting any of
+# them returns custom error 6062 (BuybackFeeRecipientMissing); passing the wrong
+# count returns 6061 (WrongBuybackFeeRecipientsCount). All 8 are marked writable
+# because the program picks one at runtime to credit.
+_BUYBACK_FEE_RECIPIENTS = [
     "5YxQFdt3Tr9zJLvkFccqXVUwhdTWJQc1fFg2YPbxvxeD",
     "9M4giFFMxmFGXtc3feFzRai56WbBqehoSeRE5GK7gf7",
     "GXPFM2caqTtQYC2cJ5yJRi9VDkpsYZXzYdwYpGnLmtDL",
@@ -62,6 +66,19 @@ _BREAKING_FEE_RECIPIENTS = [
     "EHAAiTxcdDwQ3U4bU6YcMsQGaekdzLS3B5SmYo46kJtL",
     "5eHhjP8JaYkz83CWwvGU2uMUXefd3AazWGx4gpcuEEYD",
     "A7hAgCzFw14fejgCp387JUJRMNyz4j89JKnhtKU8piqW",
+]
+
+# Jito tip accounts (https://docs.jito.wtf/lowlatencytxnsend/) — pick one at random
+# per bundle. The tip goes in the last instruction of the last bundle tx.
+_JITO_TIP_ACCOUNTS = [
+    "96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5",
+    "HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe",
+    "Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY",
+    "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",
+    "DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh",
+    "ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt",
+    "DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL",
+    "3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT",
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -155,6 +172,9 @@ def _bonding_curve(mint) -> object:
 
 
 def _bonding_curve_v2(mint) -> object:
+    """PDA seed ['bonding-curve-v2', mint]. The account need not be initialized;
+    it just needs to be present in the instruction's account list, otherwise the
+    program reads garbage and returns the misleading 6024 'Overflow' error."""
     return _pda([b"bonding-curve-v2", bytes(mint)], _pk(_PUMP_PROGRAM))
 
 
@@ -174,8 +194,17 @@ def _fee_config() -> object:
     return _pda([b"fee_config", bytes(_pk(_PUMP_PROGRAM))], _pk(_PUMP_FEE_PROGRAM))
 
 
-def _breaking_fee_recipient():
-    return _pk(random.choice(_BREAKING_FEE_RECIPIENTS))
+def _jito_tip_account() -> object:
+    return _pk(random.choice(_JITO_TIP_ACCOUNTS))
+
+
+def _buyback_recipient_metas() -> list:
+    """The 8 buyback fee recipients as remaining_accounts (all writable)."""
+    from solders.instruction import AccountMeta as AM
+    return [
+        AM(pubkey=_pk(addr), is_signer=False, is_writable=True)
+        for addr in _BUYBACK_FEE_RECIPIENTS
+    ]
 
 
 def _mayhem_global_params() -> object:
@@ -323,7 +352,9 @@ def _ix_create_ata_idempotent(payer, owner, mint):
 
 
 def _ix_buy(wallet_pk, mint_pk, sol_lamports: int, slippage_pct: int):
-    """Buy instruction — 18 accounts."""
+    """Buy instruction — 16 accounts per official IDL.
+    Args: amount (u64), max_sol_cost (u64), track_volume (OptionBool).
+    """
     from solders.instruction import Instruction, AccountMeta as AM
 
     pump       = _pk(_PUMP_PROGRAM)
@@ -336,13 +367,12 @@ def _ix_buy(wallet_pk, mint_pk, sol_lamports: int, slippage_pct: int):
 
     bc  = _bonding_curve(mint_pk)
     abc = _ata_t22(bc, mint_pk)
-    user_ata  = _ata_t22(wallet_pk, mint_pk)
+    user_ata = _ata_t22(wallet_pk, mint_pk)
     cv  = _creator_vault(wallet_pk)   # creator = wallet for self-launched tokens
     gva = _global_volume_accumulator()
     uva = _user_volume_accumulator(wallet_pk)
     fc  = _fee_config()
     bcv2 = _bonding_curve_v2(mint_pk)
-    breaking = _breaking_fee_recipient()
 
     token_amount = _get_tokens_for_sol(sol_lamports)
     max_sol_cost = int(sol_lamports * (1 + slippage_pct / 100))
@@ -358,30 +388,32 @@ def _ix_buy(wallet_pk, mint_pk, sol_lamports: int, slippage_pct: int):
         program_id=pump,
         data=data,
         accounts=[
-            AM(pubkey=global_acc,  is_signer=False, is_writable=False),  # 0
-            AM(pubkey=fee,         is_signer=False, is_writable=True),   # 1
-            AM(pubkey=mint_pk,     is_signer=False, is_writable=False),  # 2
-            AM(pubkey=bc,          is_signer=False, is_writable=True),   # 3
-            AM(pubkey=abc,         is_signer=False, is_writable=True),   # 4
-            AM(pubkey=user_ata,    is_signer=False, is_writable=True),   # 5
-            AM(pubkey=wallet_pk,   is_signer=True,  is_writable=True),   # 6
-            AM(pubkey=system,      is_signer=False, is_writable=False),  # 7
-            AM(pubkey=tok22,       is_signer=False, is_writable=False),  # 8
-            AM(pubkey=cv,          is_signer=False, is_writable=True),   # 9  creator_vault
-            AM(pubkey=event_auth,  is_signer=False, is_writable=False),  # 10
-            AM(pubkey=pump,        is_signer=False, is_writable=False),  # 11
-            AM(pubkey=gva,         is_signer=False, is_writable=False),  # 12 global_vol_acc
-            AM(pubkey=uva,         is_signer=False, is_writable=True),   # 13 user_vol_acc
-            AM(pubkey=fc,          is_signer=False, is_writable=False),  # 14 fee_config
-            AM(pubkey=fee_prog,    is_signer=False, is_writable=False),  # 15 fee_program
-            AM(pubkey=bcv2,        is_signer=False, is_writable=False),  # 16 bonding_curve_v2
-            AM(pubkey=breaking,    is_signer=False, is_writable=True),   # 17 breaking fee
+            AM(pubkey=global_acc, is_signer=False, is_writable=False),  # 0  global
+            AM(pubkey=fee,        is_signer=False, is_writable=True),   # 1  fee_recipient
+            AM(pubkey=mint_pk,    is_signer=False, is_writable=False),  # 2  mint
+            AM(pubkey=bc,         is_signer=False, is_writable=True),   # 3  bonding_curve
+            AM(pubkey=abc,        is_signer=False, is_writable=True),   # 4  associated_bonding_curve
+            AM(pubkey=user_ata,   is_signer=False, is_writable=True),   # 5  associated_user
+            AM(pubkey=wallet_pk,  is_signer=True,  is_writable=True),   # 6  user
+            AM(pubkey=system,     is_signer=False, is_writable=False),  # 7  system_program
+            AM(pubkey=tok22,      is_signer=False, is_writable=False),  # 8  token_program
+            AM(pubkey=cv,         is_signer=False, is_writable=True),   # 9  creator_vault
+            AM(pubkey=event_auth, is_signer=False, is_writable=False),  # 10 event_authority
+            AM(pubkey=pump,       is_signer=False, is_writable=False),  # 11 program
+            AM(pubkey=gva,        is_signer=False, is_writable=False),  # 12 global_volume_accumulator
+            AM(pubkey=uva,        is_signer=False, is_writable=True),   # 13 user_volume_accumulator
+            AM(pubkey=fc,         is_signer=False, is_writable=False),  # 14 fee_config
+            AM(pubkey=fee_prog,   is_signer=False, is_writable=False),  # 15 fee_program
+            AM(pubkey=bcv2,       is_signer=False, is_writable=False),  # 16 bonding_curve_v2 (remaining)
+            *_buyback_recipient_metas(),                                # 17-24 buyback recipients (remaining, 8x writable)
         ],
     )
 
 
 def _ix_sell(wallet_pk, mint_pk, token_amount: int, min_sol_out: int):
-    """Sell instruction — 16 accounts (non-cashback coin)."""
+    """Sell instruction — 14 accounts per official IDL.
+    Args: amount (u64), min_sol_output (u64). NO track_volume.
+    """
     from solders.instruction import Instruction, AccountMeta as AM
 
     pump       = _pk(_PUMP_PROGRAM)
@@ -394,39 +426,37 @@ def _ix_sell(wallet_pk, mint_pk, token_amount: int, min_sol_out: int):
 
     bc  = _bonding_curve(mint_pk)
     abc = _ata_t22(bc, mint_pk)
-    user_ata  = _ata_t22(wallet_pk, mint_pk)
-    cv   = _creator_vault(wallet_pk)
-    fc   = _fee_config()
+    user_ata = _ata_t22(wallet_pk, mint_pk)
+    cv  = _creator_vault(wallet_pk)
+    fc  = _fee_config()
     bcv2 = _bonding_curve_v2(mint_pk)
-    breaking = _breaking_fee_recipient()
 
     data = (
         _DISC_SELL
         + struct.pack("<Q", token_amount)
         + struct.pack("<Q", min_sol_out)
-        + bytes([1, 1])   # track_volume = Some(true)
     )
 
     return Instruction(
         program_id=pump,
         data=data,
         accounts=[
-            AM(pubkey=global_acc, is_signer=False, is_writable=False),  # 0
-            AM(pubkey=fee,        is_signer=False, is_writable=True),   # 1
-            AM(pubkey=mint_pk,    is_signer=False, is_writable=False),  # 2
-            AM(pubkey=bc,         is_signer=False, is_writable=True),   # 3
-            AM(pubkey=abc,        is_signer=False, is_writable=True),   # 4
-            AM(pubkey=user_ata,   is_signer=False, is_writable=True),   # 5
-            AM(pubkey=wallet_pk,  is_signer=True,  is_writable=True),   # 6
-            AM(pubkey=system,     is_signer=False, is_writable=False),  # 7
+            AM(pubkey=global_acc, is_signer=False, is_writable=False),  # 0  global
+            AM(pubkey=fee,        is_signer=False, is_writable=True),   # 1  fee_recipient
+            AM(pubkey=mint_pk,    is_signer=False, is_writable=False),  # 2  mint
+            AM(pubkey=bc,         is_signer=False, is_writable=True),   # 3  bonding_curve
+            AM(pubkey=abc,        is_signer=False, is_writable=True),   # 4  associated_bonding_curve
+            AM(pubkey=user_ata,   is_signer=False, is_writable=True),   # 5  associated_user
+            AM(pubkey=wallet_pk,  is_signer=True,  is_writable=True),   # 6  user
+            AM(pubkey=system,     is_signer=False, is_writable=False),  # 7  system_program
             AM(pubkey=cv,         is_signer=False, is_writable=True),   # 8  creator_vault
-            AM(pubkey=tok22,      is_signer=False, is_writable=False),  # 9
-            AM(pubkey=event_auth, is_signer=False, is_writable=False),  # 10
-            AM(pubkey=pump,       is_signer=False, is_writable=False),  # 11
+            AM(pubkey=tok22,      is_signer=False, is_writable=False),  # 9  token_program
+            AM(pubkey=event_auth, is_signer=False, is_writable=False),  # 10 event_authority
+            AM(pubkey=pump,       is_signer=False, is_writable=False),  # 11 program
             AM(pubkey=fc,         is_signer=False, is_writable=False),  # 12 fee_config
             AM(pubkey=fee_prog,   is_signer=False, is_writable=False),  # 13 fee_program
-            AM(pubkey=bcv2,       is_signer=False, is_writable=False),  # 14 bonding_curve_v2
-            AM(pubkey=breaking,   is_signer=False, is_writable=True),   # 15 breaking fee
+            AM(pubkey=bcv2,       is_signer=False, is_writable=False),  # 14 bonding_curve_v2 (remaining)
+            *_buyback_recipient_metas(),                                # 15-22 buyback recipients (remaining, 8x writable)
         ],
     )
 
@@ -454,13 +484,8 @@ async def _get_latest_blockhash() -> Optional[str]:
         return None
 
 
-async def _build_sign_send(instructions: list, signers: list) -> Optional[str]:
-    """Compile → legacy Message → Transaction, sign, and submit."""
-    blockhash = await _get_latest_blockhash()
-    if not blockhash:
-        logger.error("Could not fetch recent blockhash")
-        return None
-
+def _build_sign(instructions: list, signers: list, blockhash: str) -> Optional[tuple]:
+    """Compile → legacy Message → Transaction, sign. Returns (tx, signature_str, tx_b64)."""
     try:
         from solders.message import Message
         from solders.transaction import Transaction
@@ -469,58 +494,166 @@ async def _build_sign_send(instructions: list, signers: list) -> Optional[str]:
         msg = Message(instructions, signers[0].pubkey())
         tx = Transaction(signers, msg, Hash.from_string(blockhash))
         tx_b64 = base64.b64encode(bytes(tx)).decode()
+        sig_str = str(tx.signatures[0])
+        return tx, sig_str, tx_b64
     except Exception as exc:
         logger.error("TX build/sign error: %s", exc)
         return None
 
-    if config.SIMULATE:
-        rpc_payload = {
-            "jsonrpc": "2.0", "id": 1,
-            "method": "simulateTransaction",
-            "params": [tx_b64, {
-                "encoding": "base64",
-                "commitment": "confirmed",
-                "sigVerify": True,
-                "replaceRecentBlockhash": False,
-            }],
-        }
-    else:
-        rpc_payload = {
-            "jsonrpc": "2.0", "id": 1,
-            "method": "sendTransaction",
-            "params": [tx_b64, {
-                "encoding": "base64",
-                "skipPreflight": False,
-                "preflightCommitment": "confirmed",
-                "maxRetries": 3,
-            }],
-        }
 
+async def _simulate_tx(tx_b64: str) -> Optional[str]:
+    rpc_payload = {
+        "jsonrpc": "2.0", "id": 1,
+        "method": "simulateTransaction",
+        "params": [tx_b64, {
+            "encoding": "base64",
+            "commitment": "confirmed",
+            "sigVerify": True,
+            "replaceRecentBlockhash": False,
+        }],
+    }
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                config.SOLANA_RPC_URL,
-                json=rpc_payload,
+                config.SOLANA_RPC_URL, json=rpc_payload,
                 timeout=aiohttp.ClientTimeout(total=30),
             ) as resp:
                 result = await resp.json()
                 if "error" in result:
                     logger.error("RPC error: %s", result["error"])
                     return None
-                if config.SIMULATE:
-                    sim = result.get("result", {}).get("value", {})
-                    if sim.get("err") is not None:
-                        logger.error("Simulation failed: err=%s logs=%s",
-                                     sim.get("err"), sim.get("logs", [])[-8:])
-                        return None
-                    logger.info("TX simulated OK: units=%s", sim.get("unitsConsumed"))
-                    return "SIM_OK"
+                sim = result.get("result", {}).get("value", {})
+                if sim.get("err") is not None:
+                    logger.error("Simulation failed: err=%s logs=%s",
+                                 sim.get("err"), sim.get("logs", [])[-8:])
+                    return None
+                logger.info("TX simulated OK: units=%s", sim.get("unitsConsumed"))
+                return "SIM_OK"
+    except Exception as exc:
+        logger.error("RPC simulate error: %s", exc)
+        return None
+
+
+async def _send_tx(tx_b64: str) -> Optional[str]:
+    rpc_payload = {
+        "jsonrpc": "2.0", "id": 1,
+        "method": "sendTransaction",
+        "params": [tx_b64, {
+            "encoding": "base64",
+            "skipPreflight": False,
+            "preflightCommitment": "confirmed",
+            "maxRetries": 3,
+        }],
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                config.SOLANA_RPC_URL, json=rpc_payload,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                result = await resp.json()
+                if "error" in result:
+                    logger.error("RPC error: %s", result["error"])
+                    return None
                 sig = result.get("result", "")
                 logger.info("TX sent: %s", sig)
                 return sig
     except Exception as exc:
         logger.error("RPC send error: %s", exc)
         return None
+
+
+async def _build_sign_send(instructions: list, signers: list) -> Optional[str]:
+    """Build → sign → simulate or send (single-tx, non-Jito path)."""
+    blockhash = await _get_latest_blockhash()
+    if not blockhash:
+        logger.error("Could not fetch recent blockhash")
+        return None
+    built = _build_sign(instructions, signers, blockhash)
+    if not built:
+        return None
+    _, sig_str, tx_b64 = built
+    if config.SIMULATE:
+        return await _simulate_tx(tx_b64)
+    return await _send_tx(tx_b64)
+
+
+async def _send_jito_bundle(txs_b64: list) -> Optional[str]:
+    """Submit a Jito bundle (max 5 base64-encoded signed transactions).
+    Retries on rate-limit errors (-32097) up to 3 times with backoff.
+    """
+    payload = {
+        "jsonrpc": "2.0", "id": 1,
+        "method": "sendBundle",
+        "params": [txs_b64, {"encoding": "base64"}],
+    }
+    backoff = 1.0
+    for attempt in range(3):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    config.JITO_BUNDLE_URL, json=payload,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as resp:
+                    result = await resp.json()
+                    err = result.get("error")
+                    if err:
+                        if err.get("code") == -32097 and attempt < 2:
+                            logger.warning("Jito rate-limited, retrying in %.1fs", backoff)
+                            await asyncio.sleep(backoff)
+                            backoff *= 2
+                            continue
+                        logger.error("Jito error: %s", err)
+                        return None
+                    bundle_id = result.get("result", "")
+                    logger.info("Jito bundle submitted: %s", bundle_id)
+                    return bundle_id
+        except Exception as exc:
+            logger.error("Jito send error: %s", exc)
+            return None
+    return None
+
+
+async def _wait_for_confirmation(sig: str, timeout_s: int = 30) -> bool:
+    """Poll getSignatureStatuses until the tx lands (confirmed/finalized) or fails."""
+    payload = {
+        "jsonrpc": "2.0", "id": 1,
+        "method": "getSignatureStatuses",
+        "params": [[sig], {"searchTransactionHistory": False}],
+    }
+    deadline = asyncio.get_event_loop().time() + timeout_s
+    async with aiohttp.ClientSession() as session:
+        while asyncio.get_event_loop().time() < deadline:
+            try:
+                async with session.post(
+                    config.SOLANA_RPC_URL, json=payload,
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    data = await resp.json()
+                    statuses = (data.get("result") or {}).get("value") or [None]
+                    status = statuses[0]
+                    if status:
+                        if status.get("err") is not None:
+                            logger.error("TX %s failed on chain: %s", sig, status["err"])
+                            return False
+                        cs = status.get("confirmationStatus")
+                        if cs in ("confirmed", "finalized"):
+                            return True
+            except Exception as exc:
+                logger.warning("getSignatureStatuses transient error: %s", exc)
+            await asyncio.sleep(1)
+    logger.warning("Timed out waiting for confirmation of %s", sig)
+    return False
+
+
+def _ix_jito_tip(payer_pk, lamports: int):
+    """SystemProgram::Transfer of `lamports` from payer to a random Jito tip account."""
+    from solders.system_program import transfer, TransferParams
+    return transfer(TransferParams(
+        from_pubkey=payer_pk,
+        to_pubkey=_jito_tip_account(),
+        lamports=lamports,
+    ))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -619,39 +752,46 @@ async def _upload_metadata(
 # Token balance (for dev-sell)
 # ─────────────────────────────────────────────────────────────────────────────
 async def _get_token_balance(wallet_pubkey: str, mint_pubkey: str) -> Optional[int]:
+    """Fetch the wallet's Token-2022 balance for `mint`. Derives the ATA directly
+    instead of using getTokenAccountsByOwner (which can return stale empty results
+    right after a buy). Retries a few times to ride out RPC indexing lag.
+    """
+    from solders.pubkey import Pubkey
+    ata = _ata_t22(Pubkey.from_string(wallet_pubkey), Pubkey.from_string(mint_pubkey))
     payload = {
         "jsonrpc": "2.0", "id": 1,
-        "method": "getTokenAccountsByOwner",
-        "params": [
-            wallet_pubkey,
-            {"mint": mint_pubkey},
-            {"encoding": "jsonParsed"},
-        ],
+        "method": "getTokenAccountBalance",
+        "params": [str(ata), {"commitment": "confirmed"}],
     }
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                config.SOLANA_RPC_URL,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=15),
-            ) as resp:
-                data = await resp.json()
-                accounts = data.get("result", {}).get("value", [])
-                if not accounts:
-                    return None
-                amount_str = (
-                    accounts[0]
-                    .get("account", {})
-                    .get("data", {})
-                    .get("parsed", {})
-                    .get("info", {})
-                    .get("tokenAmount", {})
-                    .get("amount", "0")
-                )
-                return int(amount_str)
-    except Exception as exc:
-        logger.error("Token balance fetch error: %s", exc)
-        return None
+    backoff = 1.0
+    for attempt in range(5):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    config.SOLANA_RPC_URL, json=payload,
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    data = await resp.json()
+                    err = data.get("error")
+                    if err:
+                        # account not found yet — ATA hasn't propagated
+                        if attempt < 4:
+                            await asyncio.sleep(backoff)
+                            backoff *= 1.5
+                            continue
+                        logger.error("Token balance RPC error: %s", err)
+                        return None
+                    val = data.get("result", {}).get("value", {})
+                    amount = int(val.get("amount", "0"))
+                    if amount > 0 or attempt == 4:
+                        return amount
+                    await asyncio.sleep(backoff)
+                    backoff *= 1.5
+        except Exception as exc:
+            logger.warning("Token balance fetch transient: %s", exc)
+            await asyncio.sleep(backoff)
+            backoff *= 1.5
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -739,15 +879,17 @@ async def launch_token(
     if not metadata_uri:
         return LaunchResult(success=False, error="IPFS upload failed")
 
-    # ── TX 1: create + extend ─────────────────────────────────────────────────
-    # The post-2026-04-28 create_v2 has 16 accounts (5 mayhem additions). Combining
-    # it with create_ata + buy in one tx blows past the 1232-byte legacy limit, so
-    # the dev buy is sent as a follow-up tx instead.
+    mint_address = str(mint_pk)
+
+    # ── Common create instructions ────────────────────────────────────────────
+    # The post-2026-04-28 create_v2 has 16 accounts (5 mayhem additions). With
+    # create_ata + buy on top, the legacy 1232-byte tx limit is blown — so live
+    # mode atomically pairs create-tx and buy-tx in a single Jito bundle (same
+    # block, no front-running). SIMULATE mode just simulates the create tx.
     cu_limit_create = 350_000
     cu_price_create = max(
         1, int(config.PUMPFUN_PRIORITY_FEE * LAMPORTS_PER_SOL * 1_000_000) // cu_limit_create
     )
-
     create_ixs = [
         _ix_cu_price(cu_price_create),
         _ix_cu_limit(cu_limit_create),
@@ -755,47 +897,71 @@ async def launch_token(
         _ix_extend_account(wallet_pk, mint_pk),
     ]
 
-    sig = await _build_sign_send(create_ixs, [wallet_kp, mint_kp])
-    if not sig:
-        return LaunchResult(success=False, error="Create TX submission failed")
-
-    mint_address = str(mint_pk)
-
-    # ── TX 2: dev buy ─────────────────────────────────────────────────────────
-    # Skipped entirely in SIMULATE mode because the bonding curve doesn't exist
-    # on-chain yet — simulating the buy would fail with "account not found".
-    if config.DEV_BUY_SOL > 0 and not config.SIMULATE and not config.DRY_RUN:
-        sol_lamports = int(config.DEV_BUY_SOL * LAMPORTS_PER_SOL)
-        cu_limit_buy = 200_000
-        cu_price_buy = max(
-            1, int(config.PUMPFUN_PRIORITY_FEE * LAMPORTS_PER_SOL * 1_000_000) // cu_limit_buy
+    # ── SIMULATE / no-buy path: just send/simulate the create tx ──────────────
+    if config.SIMULATE or config.DEV_BUY_SOL <= 0:
+        sig = await _build_sign_send(create_ixs, [wallet_kp, mint_kp])
+        if not sig:
+            return LaunchResult(success=False, error="Create TX submission failed")
+        sol_spent = 0.0 if config.SIMULATE else config.PUMPFUN_PRIORITY_FEE
+        return LaunchResult(
+            success=True, tx_sig=sig, mint_address=mint_address,
+            metadata_uri=metadata_uri, sol_spent=sol_spent,
         )
-        buy_ixs = [
-            _ix_cu_price(cu_price_buy),
-            _ix_cu_limit(cu_limit_buy),
-            _ix_create_ata_idempotent(wallet_pk, wallet_pk, mint_pk),
-            _ix_buy(wallet_pk, mint_pk, sol_lamports, config.PUMPFUN_SLIPPAGE),
-        ]
-        buy_sig = await _build_sign_send(buy_ixs, [wallet_kp])
-        if not buy_sig:
-            logger.warning("Dev-buy TX failed for %s", mint_address)
 
-    sol_spent = 0.0 if config.SIMULATE else (config.DEV_BUY_SOL + config.PUMPFUN_PRIORITY_FEE)
+    # ── LIVE path: atomic Jito bundle [create_tx, buy_tx] ─────────────────────
+    sol_lamports = int(config.DEV_BUY_SOL * LAMPORTS_PER_SOL)
+    cu_limit_buy = 200_000
+    cu_price_buy = max(
+        1, int(config.PUMPFUN_PRIORITY_FEE * LAMPORTS_PER_SOL * 1_000_000) // cu_limit_buy
+    )
+    buy_ixs = [
+        _ix_cu_price(cu_price_buy),
+        _ix_cu_limit(cu_limit_buy),
+        _ix_create_ata_idempotent(wallet_pk, wallet_pk, mint_pk),
+        _ix_buy(wallet_pk, mint_pk, sol_lamports, config.PUMPFUN_SLIPPAGE),
+        _ix_jito_tip(wallet_pk, config.JITO_TIP_LAMPORTS),
+    ]
+
+    blockhash = await _get_latest_blockhash()
+    if not blockhash:
+        return LaunchResult(success=False, error="Could not fetch blockhash")
+
+    create_built = _build_sign(create_ixs, [wallet_kp, mint_kp], blockhash)
+    buy_built    = _build_sign(buy_ixs, [wallet_kp], blockhash)
+    if not create_built or not buy_built:
+        return LaunchResult(success=False, error="TX build/sign failed")
+
+    _, create_sig, create_b64 = create_built
+    _, buy_sig,    buy_b64    = buy_built
+
+    bundle_id = await _send_jito_bundle([create_b64, buy_b64])
+    if not bundle_id:
+        return LaunchResult(success=False, error="Jito bundle submission failed")
+
+    # Wait for the buy tx to land before the dev-sell. If it fails, abort sell.
+    if not await _wait_for_confirmation(buy_sig, timeout_s=30):
+        return LaunchResult(
+            success=False,
+            tx_sig=create_sig, mint_address=mint_address, metadata_uri=metadata_uri,
+            error="Bundle did not confirm — buy tx not landed",
+        )
+
+    sol_spent = config.DEV_BUY_SOL + config.PUMPFUN_PRIORITY_FEE + (
+        config.JITO_TIP_LAMPORTS / LAMPORTS_PER_SOL
+    )
 
     # ── Dev sell after delay ──────────────────────────────────────────────────
-    sell_sig = ""
-    if not config.SIMULATE and not config.DRY_RUN and config.DEV_BUY_SOL > 0:
-        logger.info("Dev-buy confirmed. Waiting %ds before selling...", config.DEV_SELL_DELAY_SECONDS)
-        await asyncio.sleep(config.DEV_SELL_DELAY_SECONDS)
-        sell_sig = await _sell_all(str(wallet_pk), mint_address, wallet_kp) or ""
-        if sell_sig:
-            logger.info("Dev-sell complete: %s", sell_sig)
-        else:
-            logger.warning("Dev-sell failed or skipped for %s", mint_address)
+    logger.info("Dev-buy confirmed. Waiting %ds before selling...", config.DEV_SELL_DELAY_SECONDS)
+    await asyncio.sleep(config.DEV_SELL_DELAY_SECONDS)
+    sell_sig = await _sell_all(str(wallet_pk), mint_address, wallet_kp) or ""
+    if sell_sig:
+        logger.info("Dev-sell complete: %s", sell_sig)
+    else:
+        logger.warning("Dev-sell failed or skipped for %s", mint_address)
 
     return LaunchResult(
         success=True,
-        tx_sig=sig,
+        tx_sig=create_sig,
         mint_address=mint_address,
         metadata_uri=metadata_uri,
         sol_spent=sol_spent,

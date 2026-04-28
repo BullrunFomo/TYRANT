@@ -15,6 +15,15 @@ DEV_SELL_DELAY_SECONDS: int = int(os.getenv("DEV_SELL_DELAY_SECONDS", "5"))
 PUMPFUN_PRIORITY_FEE: float = float(os.getenv("PUMPFUN_PRIORITY_FEE", "0.0005"))
 PUMPFUN_SLIPPAGE: int = int(os.getenv("PUMPFUN_SLIPPAGE", "10"))
 
+# ── Jito (atomic create + dev-buy bundle) ─────────────────────────────────────
+# In live mode the create tx and buy tx ship as a Jito bundle so they land in
+# the same block atomically. The tip (last instruction of the buy tx) goes to
+# one of Jito's 8 tip accounts.
+JITO_BUNDLE_URL: str = os.getenv(
+    "JITO_BUNDLE_URL", "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles"
+)
+JITO_TIP_LAMPORTS: int = int(os.getenv("JITO_TIP_LAMPORTS", "10000"))
+
 # ── IPFS (Pinata) ──────────────────────────────────────────────────────────────
 # Pump.fun's old /api/ipfs is deprecated. Get a free JWT at https://pinata.cloud
 # (Profile → API Keys → New Key → "Pinning service" scope → copy JWT).
