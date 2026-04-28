@@ -9,6 +9,9 @@ SOLANA_RPC_URL: str = os.getenv("SOLANA_RPC_URL", "https://api.mainnet-beta.sola
 # Base58 string or JSON byte array [1,2,...,64] — set once via dashboard
 SOLANA_PRIVATE_KEY: str = os.getenv("SOLANA_PRIVATE_KEY", "")
 PUMPFUN_INITIAL_BUY_SOL: float = float(os.getenv("PUMPFUN_INITIAL_BUY_SOL", "0.0001"))
+# Dev buy: purchased in the same tx as the create, then sold after DEV_SELL_DELAY_SECONDS.
+DEV_BUY_SOL: float = float(os.getenv("DEV_BUY_SOL", "0.1"))
+DEV_SELL_DELAY_SECONDS: int = int(os.getenv("DEV_SELL_DELAY_SECONDS", "5"))
 PUMPFUN_PRIORITY_FEE: float = float(os.getenv("PUMPFUN_PRIORITY_FEE", "0.0005"))
 PUMPFUN_SLIPPAGE: int = int(os.getenv("PUMPFUN_SLIPPAGE", "10"))
 
