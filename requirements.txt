@@ -1,6 +1,4 @@
 # Core
-textual>=0.47.0
-rich>=13.7.0
 python-dotenv>=1.0.1
 
 # HTTP / Async
@@ -18,9 +16,6 @@ solana>=0.34.0
 
 # Database
 aiosqlite>=0.20.0
-
-# Alerts
-python-telegram-bot>=20.7
 
 # Web dashboard
 fastapi>=0.111.0

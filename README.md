@@ -1,15 +1,15 @@
-# PULSE//BOT — Weather Market Alpha Engine
+# TYRANT//BOT
 
-> Autonomous trading bot for Polymarket weather prediction markets.
-> Terminal-style dashboard with real-time P&L, risk management, and Telegram alerts.
+> Autonomous KnowYourMeme → pump.fun token launcher.
+> FastAPI web dashboard with live scan log, launch history, and in-browser config.
 
 ```
- ██████╗ ██╗   ██╗██╗     ███████╗███████╗
- ██╔══██╗██║   ██║██║     ██╔════╝██╔════╝
- ██████╔╝██║   ██║██║     ███████╗█████╗
- ██╔═══╝ ██║   ██║██║     ╚════██║██╔══╝
- ██║     ╚██████╔╝███████╗███████║███████╗
- ╚═╝      ╚═════╝ ╚══════╝╚══════╝╚══════╝
+ ████████╗██╗   ██╗██████╗  █████╗ ███╗   ██╗████████╗
+ ╚══██╔══╝╚██╗ ██╔╝██╔══██╗██╔══██╗████╗  ██║╚══██╔══╝
+    ██║    ╚████╔╝ ██████╔╝███████║██╔██╗ ██║   ██║
+    ██║     ╚██╔╝  ██╔══██╗██╔══██║██║╚██╗██║   ██║
+    ██║      ██║   ██║  ██║██║  ██║██║ ╚████║   ██║
+    ╚═╝      ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝
 ```
 
 ---
@@ -18,38 +18,25 @@
 
 ```
 pulse/
-├── config.py              — All settings, loaded from .env
-├── main.py                — Entry point + orchestration loop
+├── config.py                  — All settings, loaded from .env
+├── web_main.py                — Entry point: FastAPI + scan-launch loop
 │
 ├── data/
-│   ├── weather.py         — Open-Meteo GFS forecasts (async, cached)
-│   └── models.py          — Gaussian + ensemble probability models
+│   └── knowyourmeme.py        — KYM RSS scrape + og:image fallback
 │
 ├── market/
-│   ├── polymarket.py      — Polymarket CLOB API client wrapper
-│   ├── parser.py          — Market title → structured data (city, date, temp)
-│   └── scanner.py         — Full scan pipeline → Opportunity list
+│   └── meme_scanner.py        — Deduplicated stream of unseen memes
 │
-├── trading/
-│   ├── edge.py            — Edge calculation helpers
-│   ├── kelly.py           — Fractional Kelly criterion sizing
-│   ├── execution.py       — Order placement with FOK + fallback
-│   └── risk.py            — Daily loss / drawdown / circuit breaker
+├── launchers/
+│   └── pumpfun.py             — IPFS upload + create tx + sign/submit (or simulate)
 │
 ├── db/
-│   └── database.py        — Async SQLite (aiosqlite) for trade logging
+│   └── database.py            — Async SQLite (aiosqlite): launches + history
 │
-├── alerts/
-│   └── telegram.py        — Trade + daily summary Telegram notifications
-│
-└── dashboard/
-    ├── app.py             — Textual TUI application
-    └── widgets/
-        ├── equity_chart.py — ASCII P&L equity curve
-        ├── log_panel.py    — Scrolling system log
-        ├── trades_panel.py — Active trades table
-        ├── stats_panel.py  — Win rate, drawdown, exposure metrics
-        └── heatmap.py      — City activity heatmap + exec log
+└── web/
+    ├── server.py              — REST + WebSocket endpoints
+    ├── dashboard.html         — Live dashboard UI
+    └── docs.html              — Built-in API reference
 ```
 
 ---
@@ -67,141 +54,68 @@ Or manually:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
 
 ### 2. Configure `.env`
 
-```bash
-# Minimum required for DRY RUN (no real money):
+Minimum for DRY_RUN (nothing touches Solana):
+
+```
 DRY_RUN=true
-INITIAL_CAPITAL=1000.0
-
-# Required for LIVE trading:
-PRIVATE_KEY=0xYOUR_WALLET_PRIVATE_KEY
-POLY_API_KEY=...
-POLY_API_SECRET=...
-POLY_API_PASSPHRASE=...
-
-# Optional: Telegram alerts
-TELEGRAM_BOT_TOKEN=...
-TELEGRAM_CHAT_ID=...
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 ```
 
-### 3. Generate Polymarket API Keys
+For SIMULATE (full deploy path, no SOL spent — recommended before going live):
 
-```python
-# Run once to generate your API credentials:
-from py_clob_client.client import ClobClient
-
-client = ClobClient(
-    host="https://clob.polymarket.com",
-    chain_id=137,
-    key="0xYOUR_PRIVATE_KEY",
-)
-creds = client.create_or_derive_api_creds()
-print(creds)
-# Save the api_key, api_secret, api_passphrase to your .env
+```
+DRY_RUN=false
+SIMULATE=true
+SOLANA_PRIVATE_KEY=<base58 or JSON byte array>
+SOLANA_RPC_URL=<private RPC recommended>
 ```
 
-### 4. Run
+For LIVE:
+
+```
+DRY_RUN=false
+SIMULATE=false
+SOLANA_PRIVATE_KEY=<base58 or JSON byte array>
+SOLANA_RPC_URL=<private RPC recommended>
+PUMPFUN_INITIAL_BUY_SOL=0.0001
+```
+
+### 3. Run
 
 ```bash
 source .venv/bin/activate
-python -m pulse.main
+python -m pulse.web_main
 ```
+
+Dashboard: http://localhost:8000 · API docs: http://localhost:8000/docs
 
 ---
 
-## Dashboard Layout
+## Run Modes
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  PULSE//BOT  │  2024-04-15 14:23:07 UTC  │  UP 02:15:43  │  DRY RUN │
-├─────────────┬───────────────────────────────────────┬───────────────┤
-│ SYSTEM LOG  │                                       │ ACTIVE TRADES │
-│             │         EQUITY CURVE                  │               │
-│ 14:23:01 ✓  │  ●                                    │ Miami    YES  │
-│ [OK   ] ... │   ●●●    ●●                           │ Phoenix  NO   │
-│ 14:23:05 ⟳  │      ●●●●  ●●●●●●                    │ Chicago  YES  │
-│ [SCAN ] ... │                                       │               │
-│ 14:23:07 ◈  │  EQUITY: $1,082.50  P&L: +$82.50     │               │
-│ [TRADE] ... │                                       │               │
-├─────────────┴───────────────────────────────────────┴───────────────┤
-│  TOTAL P&L  +$82.50  │  TODAY  +$12.00  │  EQUITY  $1,082.50        │
-├─────────────────────────────────────────────────────────────────────┤
-│ TOTAL P&L   TODAY P&L   EQUITY   WIN RATE   AVG PROFIT   EXPOSURE   │
-│ +$82.50     +$12.00     $1082    62.5%      +$8.25       $200        │
-│ TRADES      WINS/LOSS   DRAWDOWN CONSEC LOS CIRCUIT      SCANS       │
-│ 16          10/6        2.1%     0          ● CLOSED      47         │
-├──────────────────────────────────┬──────────────────────────────────┤
-│ EXECUTION LOG                    │ CITY ACTIVITY                    │
-│ 14:23:07 [ENTRY  ] Miami   YES @ │ MIA:███ 3  PHX:█ 1  CHI:██ 2   │
-│ 14:23:08 [EXEC   ] Miami   order │ NYC:  0   LAX:█ 1  HOU:  0     │
-│ 14:23:09 [FILLED ] Miami  +$4.20 │ DAL:  0   SEA:  0              │
-└──────────────────────────────────┴──────────────────────────────────┘
-```
-
-**Keybindings:**
-| Key | Action |
-|-----|--------|
-| `q` | Quit |
-| `r` | Reset circuit breaker |
-| `c` | Clear system log |
-| `l` | Toggle live/dry run mode |
+| Mode      | `DRY_RUN` | `SIMULATE` | Behavior                                                                 |
+|-----------|-----------|------------|--------------------------------------------------------------------------|
+| Dry run   | `true`    | any        | Full scrape/scoring, no IPFS upload, no tx. Records marked `DRY_RUN`.    |
+| Simulate  | `false`   | `true`     | Full path executes. `simulateTransaction` instead of `sendTransaction`. No SOL spent. |
+| Live      | `false`   | `false`    | Real pump.fun launch. Spends SOL.                                        |
 
 ---
 
-## Trading Logic
+## Running Locally (non-Railway)
 
-### Edge Calculation
-
-```
-edge = model_probability - market_implied_probability
-
-Model prob:  Gaussian fit to Open-Meteo GFS ensemble (30 members)
-Market prob: Polymarket YES token price (0–1)
-
-Only trade when: |edge| > MIN_EDGE_THRESHOLD (default 8%)
-```
-
-### Position Sizing (Fractional Kelly)
-
-```
-full_kelly  = (p * b - q) / b     where b = (1-price)/price
-trade_size  = bankroll × full_kelly × KELLY_FRACTION
-capped_size = min(trade_size, MAX_TRADE_SIZE_USD)
-```
-
-### Risk Rules
-
-| Rule | Default | Description |
-|------|---------|-------------|
-| Daily loss limit | $200 | Stops trading for the day |
-| Max drawdown | 15% | Trips circuit breaker |
-| Consecutive losses | 5 | Trips circuit breaker |
-| Max exposure | $1,000 | Total open position cap |
-| One trade per event | Always | No duplicates per city+date |
-
----
-
-## Weather Data
-
-Forecasts come from [Open-Meteo](https://open-meteo.com/) — **free, no API key**.
-
-- Model: GFS Seamless (updated 4x daily)
-- Ensemble: 30 members for probability distribution
-- Locations: 8 US cities (configurable in `config.py`)
-- Cache TTL: 5 minutes (matches scan interval)
-- Fallback: Gaussian distribution (mean ± 3.5°F) if ensemble unavailable
+- `PORT` is optional — defaults to `8000`.
+- The dashboard binds to `0.0.0.0` — anyone on your LAN can reach it **and** the `/api/config` endpoint which can write `SOLANA_PRIVATE_KEY` to `.env`. Bind to `127.0.0.1` (edit `web_main.py`) or keep the machine off public networks.
+- On macOS, prevent sleep-induced scan pauses: `caffeinate -i python -m pulse.web_main`.
 
 ---
 
 ## Disclaimer
 
-This software is for educational and research purposes.
-Prediction market trading involves financial risk.
-Always start with `DRY_RUN=true` and understand the system before enabling live trading.
-Past performance does not guarantee future results.
+Educational / research use. Launching tokens on pump.fun spends real SOL and carries financial and reputational risk. Always start with `DRY_RUN=true`, validate with `SIMULATE=true`, then do a single tiny live launch before scaling up.

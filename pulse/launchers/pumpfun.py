@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -13,8 +14,14 @@ from pulse import config
 
 logger = logging.getLogger(__name__)
 
-PUMPFUN_IPFS_URL = "https://pump.fun/api/ipfs"
-PUMPFUN_TRADE_URL = "https://pump.fun/api/trade-local"
+PINATA_UPLOAD_URL = "https://uploads.pinata.cloud/v3/files"
+PUMPFUN_TRADE_URL = "https://pumpportal.fun/api/trade-local"
+
+
+def _ipfs_url(cid: str) -> str:
+    """Build a gateway URL for a CID — dedicated Pinata gateway if configured."""
+    gateway = config.PINATA_GATEWAY or "ipfs.io"
+    return f"https://{gateway}/ipfs/{cid}"
 
 HEADERS = {
     "User-Agent": (
@@ -70,6 +77,41 @@ async def _download_image(session: aiohttp.ClientSession, image_url: str) -> Opt
     return None
 
 
+async def _pinata_upload(
+    session: aiohttp.ClientSession,
+    file_bytes: bytes,
+    filename: str,
+    content_type: str,
+) -> Optional[str]:
+    """Upload bytes to Pinata IPFS. Returns the CID."""
+    if not config.PINATA_JWT:
+        logger.error("PINATA_JWT not set — get a free key at https://pinata.cloud")
+        return None
+    form = aiohttp.FormData()
+    form.add_field("file", file_bytes, filename=filename, content_type=content_type)
+    form.add_field("network", "public")
+    try:
+        async with session.post(
+            PINATA_UPLOAD_URL,
+            data=form,
+            headers={"Authorization": f"Bearer {config.PINATA_JWT}"},
+            timeout=aiohttp.ClientTimeout(total=30),
+        ) as resp:
+            if resp.status not in (200, 201):
+                body = await resp.text()
+                logger.error("Pinata upload failed %s: %s", resp.status, body[:300])
+                return None
+            data = await resp.json()
+            cid = (data.get("data") or {}).get("cid", "")
+            if not cid:
+                logger.error("Pinata response missing cid: %s", data)
+                return None
+            return cid
+    except Exception as exc:
+        logger.error("Pinata upload error: %s", exc)
+        return None
+
+
 async def _upload_metadata(
     session: aiohttp.ClientSession,
     name: str,
@@ -78,54 +120,39 @@ async def _upload_metadata(
     image_data: Optional[bytes],
     image_url: str,
 ) -> Optional[str]:
-    """Upload token metadata + image to pump.fun IPFS. Returns metadataUri."""
-    form = aiohttp.FormData()
-    form.add_field("name", name[:32])
-    form.add_field("symbol", ticker[:10])
-    form.add_field("description", description[:500] or f"Auto-launched meme coin: {name}")
-    form.add_field("showName", "true")
-
+    """Upload image + metadata JSON to Pinata. Returns the metadata gateway URI."""
+    # 1. Image → Pinata (or fall back to original source URL if download failed)
     if image_data:
-        # Detect content type from bytes magic
-        content_type = "image/jpeg"
+        content_type, ext = "image/jpeg", "jpg"
         if image_data[:4] == b"\x89PNG":
-            content_type = "image/png"
+            content_type, ext = "image/png", "png"
         elif image_data[:3] == b"GIF":
-            content_type = "image/gif"
+            content_type, ext = "image/gif", "gif"
         elif image_data[:4] == b"RIFF":
-            content_type = "image/webp"
+            content_type, ext = "image/webp", "webp"
+        img_cid = await _pinata_upload(session, image_data, f"meme.{ext}", content_type)
+        if not img_cid:
+            return None
+        image_field = _ipfs_url(img_cid)
+    else:
+        image_field = image_url
 
-        form.add_field(
-            "file",
-            image_data,
-            filename="meme.jpg",
-            content_type=content_type,
-        )
-    elif image_url:
-        # Pass image URL as a text field as fallback
-        form.add_field("imageUrl", image_url)
-
-    try:
-        async with session.post(
-            PUMPFUN_IPFS_URL,
-            data=form,
-            headers=HEADERS,
-            timeout=aiohttp.ClientTimeout(total=30),
-        ) as resp:
-            if resp.status != 200:
-                body = await resp.text()
-                logger.error("IPFS upload failed %s: %s", resp.status, body[:200])
-                return None
-            data = await resp.json()
-            uri = data.get("metadataUri", "")
-            if not uri:
-                logger.error("IPFS response missing metadataUri: %s", data)
-                return None
-            logger.info("Metadata uploaded: %s", uri)
-            return uri
-    except Exception as exc:
-        logger.error("IPFS upload error: %s", exc)
+    # 2. Metadata JSON → Pinata
+    metadata = {
+        "name": name[:32],
+        "symbol": ticker[:10],
+        "description": description[:500] or f"Auto-launched meme coin: {name}",
+        "image": image_field,
+        "showName": True,
+    }
+    meta_cid = await _pinata_upload(
+        session, json.dumps(metadata).encode("utf-8"), "metadata.json", "application/json"
+    )
+    if not meta_cid:
         return None
+    uri = _ipfs_url(meta_cid)
+    logger.info("Metadata uploaded: %s", uri)
+    return uri
 
 
 async def _build_create_tx(
@@ -157,12 +184,16 @@ async def _build_create_tx(
         async with session.post(
             PUMPFUN_TRADE_URL,
             json=payload,
-            headers={**HEADERS, "Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "User-Agent": "tyrant-bot/1.0"},
             timeout=aiohttp.ClientTimeout(total=30),
         ) as resp:
             if resp.status != 200:
                 body = await resp.text()
-                logger.error("TX build failed %s: %s", resp.status, body[:200])
+                # pumpportal returns the real error in the HTTP reason phrase
+                logger.error(
+                    "TX build failed %s %s — body=%s payload=%s",
+                    resp.status, resp.reason, body[:500], payload,
+                )
                 return None
             return await resp.read()
     except Exception as exc:
@@ -179,20 +210,36 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
         signed = VersionedTransaction(tx.message, [wallet_kp, mint_kp])
         tx_b64 = base64.b64encode(bytes(signed)).decode()
 
-        rpc_payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "sendTransaction",
-            "params": [
-                tx_b64,
-                {
-                    "encoding": "base64",
-                    "skipPreflight": False,
-                    "preflightCommitment": "confirmed",
-                    "maxRetries": 3,
-                },
-            ],
-        }
+        if config.SIMULATE:
+            rpc_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "simulateTransaction",
+                "params": [
+                    tx_b64,
+                    {
+                        "encoding": "base64",
+                        "commitment": "confirmed",
+                        "sigVerify": True,
+                        "replaceRecentBlockhash": False,
+                    },
+                ],
+            }
+        else:
+            rpc_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "sendTransaction",
+                "params": [
+                    tx_b64,
+                    {
+                        "encoding": "base64",
+                        "skipPreflight": False,
+                        "preflightCommitment": "confirmed",
+                        "maxRetries": 3,
+                    },
+                ],
+            }
 
         async with aiohttp.ClientSession() as rpc_session:
             async with rpc_session.post(
@@ -202,8 +249,19 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
             ) as resp:
                 result = await resp.json()
                 if "error" in result:
-                    logger.error("RPC send error: %s", result["error"])
+                    logger.error("RPC %s error: %s",
+                                "simulate" if config.SIMULATE else "send",
+                                result["error"])
                     return None
+                if config.SIMULATE:
+                    sim = result.get("result", {}).get("value", {})
+                    if sim.get("err") is not None:
+                        logger.error("Simulation failed: err=%s logs=%s",
+                                     sim.get("err"), sim.get("logs", [])[-5:])
+                        return None
+                    logger.info("TX simulated OK: units=%s logs_tail=%s",
+                                sim.get("unitsConsumed"), sim.get("logs", [])[-3:])
+                    return "SIM_OK"
                 sig = result.get("result", "")
                 logger.info("TX sent: %s", sig)
                 return sig
@@ -211,66 +269,6 @@ async def _sign_and_send(tx_bytes: bytes, wallet_kp, mint_kp) -> Optional[str]:
     except Exception as exc:
         logger.error("Sign/send error: %s", exc)
         return None
-
-
-async def prepare_launch_tx(
-    name: str,
-    ticker: str,
-    image_url: str,
-    description: str,
-    wallet_pubkey: str,
-) -> Optional[dict]:
-    """
-    Prepare an unsigned pump.fun create transaction for browser-side wallet signing.
-
-    Flow:
-      1. Download meme image
-      2. Upload metadata + image to pump.fun IPFS
-      3. Generate a fresh mint keypair
-      4. Ask pump.fun to build the create transaction
-      5. Return: unsigned tx bytes (b64), mint secret (b64 of full 64-byte keypair),
-                 mint pubkey, and metadata URI
-
-    The caller (browser) must:
-      a. Reconstruct the mint keypair from mint_secret_b64
-      b. Sign the tx with the mint keypair
-      c. Sign the tx with the user's wallet (Phantom / Solflare)
-      d. Submit the fully-signed tx to Solana RPC
-    """
-    if not wallet_pubkey:
-        return None
-
-    try:
-        from solders.keypair import Keypair
-        mint_kp = Keypair()
-        mint_pubkey = str(mint_kp.pubkey())
-        mint_secret_b64 = base64.b64encode(bytes(mint_kp)).decode()
-    except Exception as exc:
-        logger.error("Keypair generation error: %s", exc)
-        return None
-
-    async with aiohttp.ClientSession() as session:
-        image_data = await _download_image(session, image_url)
-
-        metadata_uri = await _upload_metadata(
-            session, name, ticker, description, image_data, image_url
-        )
-        if not metadata_uri:
-            return None
-
-        tx_bytes = await _build_create_tx(
-            session, wallet_pubkey, mint_pubkey, name, ticker, metadata_uri
-        )
-        if not tx_bytes:
-            return None
-
-    tx_b64 = base64.b64encode(tx_bytes).decode()
-    return {
-        "tx_b64": tx_b64,
-        "mint_secret_b64": mint_secret_b64,
-        "mint_pubkey": mint_pubkey,
-        "metadata_uri": metadata_uri,
-    }
 
 
 async def launch_token(
@@ -341,5 +339,5 @@ async def launch_token(
         tx_sig=sig,
         mint_address=mint_pubkey,
         metadata_uri=metadata_uri,
-        sol_spent=config.PUMPFUN_INITIAL_BUY_SOL + config.PUMPFUN_PRIORITY_FEE,
+        sol_spent=0.0 if config.SIMULATE else (config.PUMPFUN_INITIAL_BUY_SOL + config.PUMPFUN_PRIORITY_FEE),
     )

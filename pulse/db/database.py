@@ -123,7 +123,8 @@ async def get_today_launches() -> List[Launch]:
 async def get_total_launches() -> int:
     db = await get_db()
     rows = await db.execute_fetchall(
-        "SELECT COUNT(*) AS cnt FROM launched_memes WHERE status IN ('LAUNCHED','DRY_RUN')"
+        "SELECT COUNT(*) AS cnt FROM launched_memes "
+        "WHERE status IN ('LAUNCHED','SIMULATED','DRY_RUN')"
     )
     return int(rows[0]["cnt"]) if rows else 0
 
@@ -154,6 +155,16 @@ async def mark_meme_seen(url: str) -> None:
             (url, time.time()),
         )
         await db.commit()
+
+
+async def count_failed_launches(meme_url: str) -> int:
+    db = await get_db()
+    rows = await db.execute_fetchall(
+        "SELECT COUNT(*) AS cnt FROM launched_memes "
+        "WHERE meme_url = ? AND status = 'FAILED'",
+        (meme_url,),
+    )
+    return int(rows[0]["cnt"]) if rows else 0
 
 
 # ── Launch history (for chart) ─────────────────────────────────────────────────

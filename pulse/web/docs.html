@@ -462,7 +462,6 @@ body {
   </div>
   <div class="sb-group">
     <div class="sb-heading">OPERATIONS</div>
-    <a class="sb-link" href="#wallet"><span class="sb-dot"></span>Wallet Sign Flow</a>
     <a class="sb-link" href="#safety"><span class="sb-dot"></span>Safety</a>
   </div>
 </aside>
@@ -608,13 +607,6 @@ body {
           <div class="mc-name" style="color:var(--green);">LIVE</div>
         </div>
         <div class="mc-desc">Real transactions broadcast to Solana mainnet via pump.fun. Requires a funded wallet and a valid <span style="color:var(--cyan);">SOLANA_PRIVATE_KEY</span> in <span style="color:var(--cyan);">.env</span>. Each launch burns SOL for the initial buy + priority fee.</div>
-      </div>
-      <div class="mode-card" style="border-top:2px solid var(--cyan);">
-        <div class="mc-head">
-          <div class="mc-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan);"></div>
-          <div class="mc-name" style="color:var(--cyan);">BROWSER SIGN</div>
-        </div>
-        <div class="mc-desc">Bot prepares the unsigned transaction server-side, then broadcasts a <span style="color:var(--purple);">launch_request</span> WebSocket event. The connected Phantom or Solflare wallet signs and submits. No private key stored on the server.</div>
       </div>
     </div>
   </div>
@@ -898,15 +890,6 @@ body {
       <div class="ep-body"><div class="ep-desc">Accepts a partial config object. Updates in-memory config and writes changed keys back to <span style="color:var(--cyan);">.env</span>. Takes effect on the next scan cycle.</div></div>
     </div>
 
-    <div class="sec-divider">LAUNCH FLOW</div>
-    <div class="endpoint">
-      <div class="ep-head"><span class="ep-method ep-post">POST</span><span class="ep-path">/api/prepare-tx</span><span class="ep-tag">JSON</span></div>
-      <div class="ep-body"><div class="ep-desc">Builds an unsigned pump.fun create transaction for the browser to sign. Returns <span style="color:var(--cyan);">tx_b64</span>, <span style="color:var(--cyan);">mint_secret_b64</span>, <span style="color:var(--cyan);">mint_pubkey</span>, <span style="color:var(--cyan);">metadata_uri</span>. In DRY_RUN mode returns a fake payload for UI testing.</div></div>
-    </div>
-    <div class="endpoint">
-      <div class="ep-head"><span class="ep-method ep-post">POST</span><span class="ep-path">/api/confirm-launch</span><span class="ep-tag">JSON</span></div>
-      <div class="ep-body"><div class="ep-desc">Records a completed browser-sign launch. Accepts name, ticker, mint_pubkey, tx_sig, sol_spent, dry_run. Inserts DB record, snapshots count, broadcasts exec + log events.</div></div>
-    </div>
   </div>
 
   <!-- ── SECTION: WEBSOCKET ── -->
@@ -926,77 +909,8 @@ body {
         <tr><td class="td-key">stats</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">total_launches, today_launches, sol_spent, success_rate, …</td><td class="td-desc">Full stats object. Refresh all metric cells in the dashboard.</td></tr>
         <tr><td class="td-key">pnl_history</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">values, timestamps</td><td class="td-desc">Updated chart data arrays. Re-render the PNL chart with latest snapshot history.</td></tr>
         <tr><td class="td-key">trade</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">trade</td><td class="td-desc">Single launch record object. Prepend to the Recent Launches table.</td></tr>
-        <tr><td class="td-key">launch_request</td><td><span class="badge b-cyan">server→client</span></td><td class="td-default">meme</td><td class="td-desc">Browser-sign mode only. Signals the dashboard to invoke wallet signing for the included meme object.</td></tr>
       </tbody>
     </table>
-  </div>
-
-  <!-- ── SECTION: WALLET ── -->
-  <div class="doc-section" id="wallet">
-    <div class="sec-header">
-      <div class="sec-icon" style="background:rgba(168,85,247,0.08);color:var(--purple);">◈</div>
-      <div class="sec-title" style="color:var(--purple);">WALLET SIGN FLOW</div>
-      <div class="sec-num">13</div>
-    </div>
-    <p style="font-size:12px;color:var(--dim);line-height:1.8;margin-bottom:16px;max-width:700px;">
-      Browser-sign mode allows launching without storing a private key on the server. The bot prepares transactions; the browser wallet signs them.
-    </p>
-    <div class="flow-steps">
-      <div class="flow-step">
-        <div class="flow-left">
-          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">1</div>
-          <div class="flow-vline" style="background:linear-gradient(var(--purple2),var(--purple2));opacity:0.3;"></div>
-        </div>
-        <div class="flow-body">
-          <div class="flow-title">Meme Detected</div>
-          <div class="flow-desc">Bot completes a KYM scrape cycle and identifies one or more new meme candidates that pass the scorer.</div>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-left">
-          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">2</div>
-          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
-        </div>
-        <div class="flow-body">
-          <div class="flow-title">Prepare Transaction</div>
-          <div class="flow-desc">Server calls <em>POST /api/prepare-tx</em> internally, building an unsigned pump.fun create transaction. Returns <em>tx_b64</em>, <em>mint_secret_b64</em>, and <em>metadata_uri</em>.</div>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-left">
-          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">3</div>
-          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
-        </div>
-        <div class="flow-body">
-          <div class="flow-title">Broadcast launch_request</div>
-          <div class="flow-desc">A <em>launch_request</em> WebSocket event is pushed to all connected browser tabs containing the meme metadata and the unsigned transaction payload.</div>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-left">
-          <div class="flow-num" style="background:rgba(168,85,247,0.15);border:1px solid var(--purple2);color:var(--purple);">4</div>
-          <div class="flow-vline" style="background:rgba(124,58,237,0.3);"></div>
-        </div>
-        <div class="flow-body">
-          <div class="flow-title">Wallet Signs</div>
-          <div class="flow-desc">The connected Phantom or Solflare wallet prompts the user. On approval it signs the transaction and submits it to the configured Solana RPC endpoint.</div>
-        </div>
-      </div>
-      <div class="flow-step">
-        <div class="flow-left">
-          <div class="flow-num" style="background:rgba(34,197,94,0.12);border:1px solid var(--green-dim);color:var(--green);">5</div>
-          <div class="flow-vline"></div>
-        </div>
-        <div class="flow-body">
-          <div class="flow-title">Confirm + Record</div>
-          <div class="flow-desc">Browser calls <em>POST /api/confirm-launch</em> with the tx signature. Server inserts the DB record, snapshots the count, and broadcasts <em>OK</em> log + exec events to all clients.</div>
-        </div>
-      </div>
-    </div>
-    <div class="callout danger">
-      <span class="ci">⚠</span>
-      <span><strong>Never expose this dashboard to the public internet while a wallet is connected.</strong> The launch_request flow allows any browser tab to trigger wallet transactions on your behalf. Run behind localhost or a VPN only.</span>
-    </div>
   </div>
 
   <!-- ── SECTION: SAFETY ── -->
