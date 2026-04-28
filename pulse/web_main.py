@@ -101,6 +101,14 @@ async def launch_loop() -> None:
                             f"  ✓ {tag}Launched {entry.title} ({ticker})"
                             f" mint={result.mint_address[:8]} tx={result.tx_sig[:16]}", "OK"
                         )
+                        if result.sell_sig:
+                            await emit_log(
+                                f"  ↩ Dev-sold {entry.title} ({ticker}) sell={result.sell_sig[:16]}", "OK"
+                            )
+                        elif not config.DRY_RUN and not config.SIMULATE:
+                            await emit_log(
+                                f"  ⚠ Dev-sell skipped/failed for {entry.title} ({ticker})", "WARN"
+                            )
                     else:
                         remaining = config.MAX_LAUNCH_RETRIES - attempt
                         suffix = f" — {remaining} retry left" if remaining > 0 else " — giving up next cycle"
