@@ -13,7 +13,7 @@ PUMPFUN_INITIAL_BUY_SOL: float = float(os.getenv("PUMPFUN_INITIAL_BUY_SOL", "0.0
 DEV_BUY_SOL: float = float(os.getenv("DEV_BUY_SOL", "0.1"))
 DEV_SELL_DELAY_SECONDS: int = int(os.getenv("DEV_SELL_DELAY_SECONDS", "5"))
 PUMPFUN_PRIORITY_FEE: float = float(os.getenv("PUMPFUN_PRIORITY_FEE", "0.0005"))
-PUMPFUN_SLIPPAGE: int = int(os.getenv("PUMPFUN_SLIPPAGE", "10"))
+PUMPFUN_SLIPPAGE: int = int(os.getenv("PUMPFUN_SLIPPAGE", "5"))
 
 # ── Jito (atomic create + dev-buy bundle) ─────────────────────────────────────
 # In live mode the create tx and buy tx ship as a Jito bundle so they land in
@@ -35,7 +35,7 @@ PINATA_JWT: str = os.getenv("PINATA_JWT", "")
 PINATA_GATEWAY: str = os.getenv("PINATA_GATEWAY", "").strip().rstrip("/")
 
 # ── KnowYourMeme scraping ──────────────────────────────────────────────────────
-KYM_CATEGORIES: list = ["confirmed", "submission", "newsworthy", "deadpool"]
+KYM_CATEGORIES: list = ["confirmed", "submission", "newsworthy"]
 KYM_MAX_ENTRIES_PER_CATEGORY: int = int(os.getenv("KYM_MAX_ENTRIES_PER_CATEGORY", "100"))
 
 # ── Launch control ─────────────────────────────────────────────────────────────

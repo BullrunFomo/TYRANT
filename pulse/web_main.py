@@ -77,6 +77,8 @@ async def launch_loop() -> None:
                         ticker=ticker,
                         image_url=entry.image_url or "",
                         description=entry.description or f"KYM {entry.source} meme. Source: {entry.url}",
+                        meme_url=entry.url,
+                        source=entry.source,
                     )
                     if config.DRY_RUN:
                         status = "DRY_RUN"

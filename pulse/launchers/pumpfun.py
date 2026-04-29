@@ -715,6 +715,8 @@ async def _upload_metadata(
     description: str,
     image_data: Optional[bytes],
     image_url: str,
+    meme_url: str = "",
+    source: str = "",
 ) -> Optional[str]:
     if image_data:
         content_type, ext = "image/jpeg", "jpg"
@@ -731,13 +733,31 @@ async def _upload_metadata(
     else:
         image_field = image_url
 
+    # Build a richer description: include KYM source/url instead of a flat tag line.
+    base_desc = description.strip()
+    if base_desc:
+        body = base_desc[:400]
+    else:
+        body = f"Meme coin auto-launched from KnowYourMeme."
+    if meme_url:
+        kym_tag = f" Source: KnowYourMeme [{source.title()}] — {meme_url}" if source else f" Source: {meme_url}"
+        body = (body + kym_tag)[:500]
+
+    from urllib.parse import quote
     metadata = {
         "name": name[:32],
         "symbol": ticker[:10],
-        "description": description[:500] or f"Auto-launched meme coin: {name}",
+        "description": body,
         "image": image_field,
         "showName": True,
+        "createdOn": "https://pump.fun",
     }
+    if meme_url:
+        metadata["website"] = meme_url
+    # Twitter search for the meme name — there's no specific tweet, but the search
+    # surfaces current activity which is what most pump.fun launches link to.
+    metadata["twitter"] = f"https://x.com/search?q={quote(name)}"
+
     meta_cid = await _pinata_upload(
         session, json.dumps(metadata).encode("utf-8"), "metadata.json", "application/json"
     )
@@ -832,6 +852,8 @@ async def launch_token(
     ticker: str,
     image_url: str,
     description: str = "",
+    meme_url: str = "",
+    source: str = "",
 ) -> LaunchResult:
     """
     Full pump.fun token launch (direct on-chain, Token2022):
@@ -874,7 +896,8 @@ async def launch_token(
     async with aiohttp.ClientSession() as session:
         image_data = await _download_image(session, image_url)
         metadata_uri = await _upload_metadata(
-            session, name, ticker, description, image_data, image_url
+            session, name, ticker, description, image_data, image_url,
+            meme_url=meme_url, source=source,
         )
     if not metadata_uri:
         return LaunchResult(success=False, error="IPFS upload failed")
