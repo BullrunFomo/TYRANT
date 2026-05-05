@@ -35,11 +35,13 @@ PINATA_JWT: str = os.getenv("PINATA_JWT", "")
 PINATA_GATEWAY: str = os.getenv("PINATA_GATEWAY", "").strip().rstrip("/")
 
 # ── KnowYourMeme scraping ──────────────────────────────────────────────────────
-KYM_CATEGORIES: list = ["confirmed", "submission", "newsworthy"]
+# Only confirmed + submission feed the launch queue. Newsworthy/deadpool are noise.
+KYM_CATEGORIES: list = ["confirmed", "submission"]
 KYM_MAX_ENTRIES_PER_CATEGORY: int = int(os.getenv("KYM_MAX_ENTRIES_PER_CATEGORY", "100"))
+# Number of newest entries pulled from each KYM category to seed the queue at startup.
+STARTUP_SEED_PER_CATEGORY: int = int(os.getenv("STARTUP_SEED_PER_CATEGORY", "3"))
 
 # ── Launch control ─────────────────────────────────────────────────────────────
-MAX_LAUNCHES_PER_CYCLE: int = int(os.getenv("MAX_LAUNCHES_PER_CYCLE", "3"))
 # Failed launches retry on the next cycle. After this many FAILED attempts
 # on the same meme, give up and mark seen so it stops blocking the queue.
 MAX_LAUNCH_RETRIES: int = int(os.getenv("MAX_LAUNCH_RETRIES", "3"))
@@ -51,7 +53,28 @@ SIMULATE: bool = os.getenv("SIMULATE", "false").lower() == "true"
 
 # ── Timing ─────────────────────────────────────────────────────────────────────
 SCAN_INTERVAL_SECONDS: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "300"))  # 5 min
+# Minimum gap between successive launches (seconds). Pace control: even if the
+# queue has 10 entries we still launch one per LAUNCH_INTERVAL_SECONDS.
+LAUNCH_INTERVAL_SECONDS: int = int(os.getenv("LAUNCH_INTERVAL_SECONDS", "300"))  # 5 min
 DASHBOARD_REFRESH_SECONDS: float = float(os.getenv("DASHBOARD_REFRESH_SECONDS", "2.0"))
+
+# ── OpenRouter (AI naming / description / quality) ────────────────────────────
+OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_BASE_URL: str = os.getenv(
+    "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+).rstrip("/")
+# Per-task model override. Defaults are tuned for cost: Haiku for creative writes,
+# Gemini Flash (cheap vision) for the quality gate.
+OPENROUTER_MODEL_NAMING: str = os.getenv("OPENROUTER_MODEL_NAMING", "anthropic/claude-haiku-4.5")
+OPENROUTER_MODEL_DESCRIPTION: str = os.getenv("OPENROUTER_MODEL_DESCRIPTION", "anthropic/claude-haiku-4.5")
+OPENROUTER_MODEL_QUALITY: str = os.getenv("OPENROUTER_MODEL_QUALITY", "google/gemini-2.5-flash")
+# Toggle each AI step. Quality gate is OFF by default (KYM is curated already).
+NAMING_ENABLED: bool = os.getenv("NAMING_ENABLED", "true").lower() == "true"
+DESCRIPTION_ENABLED: bool = os.getenv("DESCRIPTION_ENABLED", "true").lower() == "true"
+QUALITY_GATE_ENABLED: bool = os.getenv("QUALITY_GATE_ENABLED", "false").lower() == "true"
+# Optional referer/title for OpenRouter analytics (visible on their dashboard).
+OPENROUTER_REFERER: str = os.getenv("OPENROUTER_REFERER", "https://github.com/tyrant-bot")
+OPENROUTER_TITLE: str = os.getenv("OPENROUTER_TITLE", "TYRANT//BOT")
 
 # ── Database ───────────────────────────────────────────────────────────────────
 DB_PATH: str = os.getenv("DB_PATH", "tyrant_launches.db")

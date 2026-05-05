@@ -1055,10 +1055,10 @@
 
       <div class="sm-param-row">
         <div>
-          <div class="sm-param-label">MAX_LAUNCHES_PER_CYCLE</div>
-          <div class="sm-param-desc">Maximum number of new memes to queue per scan cycle.</div>
+          <div class="sm-param-label">LAUNCH_INTERVAL_SECONDS</div>
+          <div class="sm-param-desc">Minimum seconds between consecutive launches. Queue paces at this rate.</div>
         </div>
-        <input class="sm-input" id="cfg-MAX_LAUNCHES_PER_CYCLE" type="number" step="1" min="1" max="20">
+        <input class="sm-input" id="cfg-LAUNCH_INTERVAL_SECONDS" type="number" step="10" min="10">
       </div>
 
       <div class="sm-right-section risk">RISK MANAGEMENT</div>
@@ -1657,7 +1657,7 @@ async function openStrategy() {
   try {
     const cfg = await fetch('/api/config').then(r => r.json());
     document.getElementById('tog-dryrun').checked = !!cfg.DRY_RUN;
-    const nums = ['SCAN_INTERVAL_SECONDS','MAX_LAUNCHES_PER_CYCLE',
+    const nums = ['SCAN_INTERVAL_SECONDS','LAUNCH_INTERVAL_SECONDS',
                   'PUMPFUN_INITIAL_BUY_SOL','PUMPFUN_PRIORITY_FEE'];
     nums.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && cfg[k]!==undefined) el.value = cfg[k]; });
     if (cfg.KYM_CATEGORIES) {
@@ -1684,7 +1684,7 @@ async function toggleDryRun(val) {
 }
 
 async function saveStrategy() {
-  const nums = ['SCAN_INTERVAL_SECONDS','MAX_LAUNCHES_PER_CYCLE',
+  const nums = ['SCAN_INTERVAL_SECONDS','LAUNCH_INTERVAL_SECONDS',
                 'PUMPFUN_INITIAL_BUY_SOL','PUMPFUN_PRIORITY_FEE'];
   const payload = { DRY_RUN: document.getElementById('tog-dryrun').checked };
   nums.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && el.value !== '') payload[k] = Number(el.value); });

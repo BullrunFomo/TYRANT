@@ -188,21 +188,25 @@ async def get_config_endpoint():
     return {
         "DRY_RUN": config.DRY_RUN,
         "SCAN_INTERVAL_SECONDS": config.SCAN_INTERVAL_SECONDS,
-        "MAX_LAUNCHES_PER_CYCLE": config.MAX_LAUNCHES_PER_CYCLE,
+        "LAUNCH_INTERVAL_SECONDS": config.LAUNCH_INTERVAL_SECONDS,
         "PUMPFUN_INITIAL_BUY_SOL": config.PUMPFUN_INITIAL_BUY_SOL,
         "PUMPFUN_PRIORITY_FEE": config.PUMPFUN_PRIORITY_FEE,
         "SOLANA_RPC_URL": config.SOLANA_RPC_URL,
         "KYM_MAX_ENTRIES_PER_CATEGORY": config.KYM_MAX_ENTRIES_PER_CATEGORY,
         "KYM_CATEGORIES": config.KYM_CATEGORIES,
+        "NAMING_ENABLED": config.NAMING_ENABLED,
+        "DESCRIPTION_ENABLED": config.DESCRIPTION_ENABLED,
+        "QUALITY_GATE_ENABLED": config.QUALITY_GATE_ENABLED,
+        "OPENROUTER_API_KEY": bool(config.OPENROUTER_API_KEY),  # presence only
         "SOLANA_PRIVATE_KEY": bool(config.SOLANA_PRIVATE_KEY),  # presence only, never expose key
     }
 
 
 @app.post("/api/config")
 async def set_config_endpoint(data: dict):
-    _BOOL  = {"DRY_RUN"}
+    _BOOL  = {"DRY_RUN", "NAMING_ENABLED", "DESCRIPTION_ENABLED", "QUALITY_GATE_ENABLED"}
     _FLOAT = {"PUMPFUN_INITIAL_BUY_SOL", "PUMPFUN_PRIORITY_FEE"}
-    _INT   = {"SCAN_INTERVAL_SECONDS", "MAX_LAUNCHES_PER_CYCLE",
+    _INT   = {"SCAN_INTERVAL_SECONDS", "LAUNCH_INTERVAL_SECONDS",
               "KYM_MAX_ENTRIES_PER_CATEGORY"}
     _STR   = {"SOLANA_RPC_URL", "SOLANA_PRIVATE_KEY"}
     _LIST  = {"KYM_CATEGORIES"}
