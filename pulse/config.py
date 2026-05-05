@@ -68,10 +68,15 @@ OPENROUTER_BASE_URL: str = os.getenv(
 OPENROUTER_MODEL_NAMING: str = os.getenv("OPENROUTER_MODEL_NAMING", "anthropic/claude-haiku-4.5")
 OPENROUTER_MODEL_DESCRIPTION: str = os.getenv("OPENROUTER_MODEL_DESCRIPTION", "anthropic/claude-haiku-4.5")
 OPENROUTER_MODEL_QUALITY: str = os.getenv("OPENROUTER_MODEL_QUALITY", "google/gemini-2.5-flash")
+OPENROUTER_MODEL_DEDUPE: str = os.getenv("OPENROUTER_MODEL_DEDUPE", "anthropic/claude-haiku-4.5")
 # Toggle each AI step. Quality gate is OFF by default (KYM is curated already).
 NAMING_ENABLED: bool = os.getenv("NAMING_ENABLED", "true").lower() == "true"
 DESCRIPTION_ENABLED: bool = os.getenv("DESCRIPTION_ENABLED", "true").lower() == "true"
 QUALITY_GATE_ENABLED: bool = os.getenv("QUALITY_GATE_ENABLED", "false").lower() == "true"
+DEDUPE_ENABLED: bool = os.getenv("DEDUPE_ENABLED", "true").lower() == "true"
+# How far back semantic dedup looks. After this window passes, a meme
+# (same URL or near-duplicate) becomes eligible to relaunch. Default 7 days.
+DEDUPE_WINDOW_SECONDS: int = int(os.getenv("DEDUPE_WINDOW_SECONDS", str(7 * 86400)))
 # Optional referer/title for OpenRouter analytics (visible on their dashboard).
 OPENROUTER_REFERER: str = os.getenv("OPENROUTER_REFERER", "https://github.com/tyrant-bot")
 OPENROUTER_TITLE: str = os.getenv("OPENROUTER_TITLE", "TYRANT//BOT")

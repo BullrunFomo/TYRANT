@@ -139,22 +139,47 @@ async def get_total_sol_spent() -> float:
 
 # ── KYM dedup ──────────────────────────────────────────────────────────────────
 
-async def is_meme_seen(url: str) -> bool:
+async def is_meme_seen(url: str, ttl_seconds: int = 7 * 86400) -> bool:
+    """True if this URL was seen within `ttl_seconds`. After the TTL expires
+    the same meme becomes eligible again — semantic dedup at launch-time keeps
+    near-duplicates out within the window.
+    """
     db = await get_db()
+    cutoff = time.time() - ttl_seconds
     rows = await db.execute_fetchall(
-        "SELECT url FROM kym_seen WHERE url=?", (url,)
+        "SELECT url FROM kym_seen WHERE url=? AND first_seen >= ?",
+        (url, cutoff),
     )
     return len(rows) > 0
 
 
 async def mark_meme_seen(url: str) -> None:
+    """Record the URL with the current timestamp. Subsequent calls refresh the
+    timestamp so re-attempts within a session don't get a stale `first_seen`.
+    """
     db = await get_db()
     async with _lock:
         await db.execute(
-            "INSERT OR IGNORE INTO kym_seen (url, first_seen) VALUES (?,?)",
+            "INSERT INTO kym_seen (url, first_seen) VALUES (?, ?) "
+            "ON CONFLICT(url) DO UPDATE SET first_seen = excluded.first_seen",
             (url, time.time()),
         )
         await db.commit()
+
+
+async def get_recent_launches(within_seconds: int = 7 * 86400, limit: int = 100) -> List[Launch]:
+    """Successful launches in the past `within_seconds`. Used by semantic dedup
+    to compare a candidate against the recent launch history.
+    """
+    db = await get_db()
+    cutoff = time.time() - within_seconds
+    rows = await db.execute_fetchall(
+        "SELECT * FROM launched_memes "
+        "WHERE timestamp >= ? AND status IN ('LAUNCHED','SIMULATED','DRY_RUN') "
+        "ORDER BY timestamp DESC LIMIT ?",
+        (cutoff, limit),
+    )
+    return [_row_to_launch(r) for r in rows]
 
 
 async def count_failed_launches(meme_url: str) -> int:

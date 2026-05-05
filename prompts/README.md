@@ -52,6 +52,7 @@ prompts/
     pumpfun_style_guide.md        included by naming + description
   naming.md                       name, ticker, twitter_query rewrite
   description.md                  on-chain description copywrite
+  dedupe.md                       semantic dedup against past-7d launches
   quality_gate.md                 vision-based launchability score (currently disabled)
 ```
 
