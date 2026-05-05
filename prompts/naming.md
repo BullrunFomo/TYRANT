@@ -20,9 +20,11 @@ Respond with ONLY a JSON object, no markdown fences, no preamble:
 {"name": "...", "ticker": "...", "twitter_query": "..."}
 
 Constraints (validated; failing output is rejected):
-- name: 1–32 chars, allowed chars `A-Za-z0-9 .,!&-`
+- name: 1–32 chars, allowed chars `A-Za-z0-9 '.,!&-`
 - ticker: 3–6 chars, only `A-Z` and `0-9`
 - twitter_query: 1–60 chars, plain words, no `#` prefix
+
+Always provide a non-empty `twitter_query` — it powers the on-chain twitter link.
 
 # User
 

@@ -20,12 +20,21 @@ Score 0–100:
 - 60–100: GOOD. Clear visual, recognizable joke, current zeitgeist energy.
 
 Hard rejects (`score=0`, `pass=false`):
-- Named real persons in negative/criminal context
+- Named real persons depicted in genuinely defamatory, criminal, sexual, or
+  tragedy contexts (lawsuits, accusations, crimes, deaths). Wholesome,
+  absurdist, or playful jokes ABOUT public figures (e.g. "Rod Wave hosting
+  fictional Arby's takeover", "Kanye doing weird things") are FINE — pump.fun
+  is full of those. Apply this rule narrowly.
 - Racial, ethnic, religious slurs or hate symbols
-- Major-studio copyrighted IP (Disney, Marvel, Pokémon, etc. — unless already
-  a transformed meme like "Doge")
-- Real-world tragedy or crime memes (mass shootings, deaths)
-- NSFW imagery
+- Clearly copyrighted IP from any recognizable franchise — comics, anime,
+  films, games, TV (Disney, Marvel, Pokémon, Image Comics, Studio Ghibli,
+  Nintendo, etc). EXCEPTION: a meme that is already an established transformed
+  variant in the wild (e.g. "Doge", "Pepe") is fine.
+- Real-world tragedy / crime memes (mass shootings, deaths, war suffering)
+- NSFW imagery (genitalia, sex acts)
+
+When in doubt on the named-person rule, lean PASS. Crypto traders launch coins
+about celebrities all day; only block when there's clear legal/reputational risk.
 
 Respond with ONLY a JSON object, no markdown fences, no preamble:
 {"score": 0-100, "pass": true|false, "reasons": ["...", "..."]}

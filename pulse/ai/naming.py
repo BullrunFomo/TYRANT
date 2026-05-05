@@ -15,7 +15,7 @@ from pulse.ai.prompts import load_prompt
 
 logger = logging.getLogger(__name__)
 
-_NAME_RE = re.compile(r"^[A-Za-z0-9 .,!&\-]{1,32}$")
+_NAME_RE = re.compile(r"^[A-Za-z0-9 '.,!&\-]{1,32}$")
 _TICKER_RE = re.compile(r"^[A-Z0-9]{3,6}$")
 _QUERY_RE = re.compile(r"^[^\n#]{1,60}$")
 
@@ -28,13 +28,27 @@ def algorithmic_ticker(name: str) -> str:
     return make_ticker(name)
 
 
+def _truncate_name(name: str, max_len: int = 32) -> str:
+    """Truncate at a word boundary so the fallback name doesn't end mid-word
+    ("JPMorgan Lorna Hajdini and Chira"). Strips trailing punctuation.
+    """
+    if len(name) <= max_len:
+        return name
+    cut = name[:max_len]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(" .,!&-")
+
+
 async def generate_name_and_ticker(
     title: str,
     description: str = "",
     source: str = "",
 ) -> tuple[str, str, Optional[str]]:
-    """Returns (name, ticker, twitter_query). On failure: (title[:32], algorithmic_ticker, None)."""
-    fallback = (title[:32], algorithmic_ticker(title), None)
+    """Returns (name, ticker, twitter_query). On failure: word-boundary
+    truncated title + algorithmic ticker + no twitter query.
+    """
+    fallback = (_truncate_name(title), algorithmic_ticker(title), None)
 
     if not config.NAMING_ENABLED or not config.OPENROUTER_API_KEY:
         return fallback

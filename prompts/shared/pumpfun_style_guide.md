@@ -15,15 +15,33 @@ names, generic adjectives, clunky abbreviations.
 - AVOID initial-style acronyms unless the meme itself goes by them.
 - AVOID generic suffixes "Coin", "Token", "Inu", "Doge" — oversaturated.
 - AVOID anything that sounds like a real company, project, or trademark.
-- Allowed chars: letters, digits, spaces, `.,!&-`. No emojis.
+- Allowed chars: letters, digits, spaces, apostrophe `'`, and `.,!&-`. No emojis.
 
 ### Tickers (`ticker`, 3–6 chars, A-Z and 0-9 only)
 
-- PREFER the most recognizable word from the name, abbreviated if needed:
-  "Skibidi" → `SKIBI`, "Fartcoin" → `FARTS`, "Chill Guy" → `CHILL`.
-- PREFER punchy single words over initials: `FARTS` beats `FCC`.
+- THE GOLDEN RULE: when the meme has an iconic noun, object, or concept,
+  USE THAT WORD as the ticker — even if you have to drop every other word.
+  Examples:
+    - "Red Button or Blue Button Question"  → `BUTTON`  (not `RBBB`, not `RBOBBQ`)
+    - "Witch Stirring Cauldron Rhymes"      → `WITCH`   (not `WSCR`)
+    - "Thragg and Viltrumites Panel"        → `THRAGG`  (not `TAVP`)
+    - "Skibidi Toilet"                      → `SKIBI`   (not `ST`)
+    - "Chill Guy"                           → `CHILL`   (not `CG`)
+- A single iconic word ALWAYS beats initials. `BUTTON` >>> `RBBB`. `WITCH` >>> `WSCR`.
+
+- TIER 2 WIN: when no single iconic noun exists, compress a 2-word concept
+  into a 4-letter punchy mashup. Crypto/internet slang puns are a strong win
+  (`MOG`, `GMI`, `NGMI`, `COPE`, `BASED`, `WAGMI`).
+  Top examples:
+    - "Our Joy Is Resistance / Your White Joy Is Apathy"  → `WJOY`
+    - "JPMorgan Lorna Hajdini Scandal"                    → `JPMOG`  (JP + MOG slang)
+    - "Get In Loser"                                      → `GETIN`
+- A clever 4–5 letter ticker that puns on slang BEATS a literal initialism.
+
+- TIER 3 (last resort): only fall back to plain initialism (`CTCBC`, `JLHACR`)
+  when neither an iconic noun nor a clever compression works.
 - If the meme already has a known ticker on X/Discord, use it.
-- 3 chars minimum, 6 chars maximum.
+- 3 chars minimum, 6 chars maximum, A–Z and 0–9 only.
 
 ### Twitter search query (`twitter_query`)
 
