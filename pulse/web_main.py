@@ -46,6 +46,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Tracks when the launcher will next attempt a launch. Pushed to the dashboard
+# in stats so the frontend can render a live countdown.
+_next_launch_at: float = 0.0
+
 
 # ── Startup seed ───────────────────────────────────────────────────────────────
 
@@ -119,16 +123,20 @@ async def launcher_loop() -> None:
     too (we don't blast LLM calls; the next scan adds fresh candidates anyway).
     Transient failure → requeue and wait.
     """
+    global _next_launch_at
     await emit_log(
         f"Launcher running — minimum {config.LAUNCH_INTERVAL_SECONDS}s between launches",
         "SYSTEM",
     )
+    _next_launch_at = time.time()  # fire on first iteration
     while True:
         try:
             await _launch_one_step()
         except Exception as exc:
             logger.exception("Launcher loop error: %s", exc)
             await emit_log(f"Launcher error: {exc}", "ERROR")
+        _next_launch_at = time.time() + config.LAUNCH_INTERVAL_SECONDS
+        await _push_stats()  # broadcast new countdown + queue snapshot
         await _sleep_seconds(config.LAUNCH_INTERVAL_SECONDS)
 
 
@@ -273,6 +281,18 @@ async def _push_stats(scan_count: int = 0) -> None:
     n_real_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED"))
     n_real_attempts = n_real_ok + n_fail
 
+    snap = await queue.snapshot()
+    queue_payload = [
+        {
+            "title": qm.entry.title,
+            "source": qm.entry.source,
+            "image_url": qm.entry.image_url,
+            "url": qm.entry.url,
+            "attempts": qm.attempts,
+        }
+        for qm in snap[:30]  # cap so the WS frame stays small
+    ]
+
     await emit_stats({
         "total_launches": total,
         "today_launches": len(today),
@@ -283,7 +303,10 @@ async def _push_stats(scan_count: int = 0) -> None:
         "success_rate": (n_real_ok / n_real_attempts) if n_real_attempts else 0.0,
         "dry_run": config.DRY_RUN,
         "scan_count": scan_count,
-        "queue_size": await queue.size(),
+        "queue_size": len(snap),
+        "queue": queue_payload,
+        "next_launch_at": _next_launch_at,
+        "launch_interval_seconds": config.LAUNCH_INTERVAL_SECONDS,
     })
     await emit_pnl_history({
         "timestamps": [h.timestamp for h in history],

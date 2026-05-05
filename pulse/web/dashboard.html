@@ -375,7 +375,7 @@
   .stat-purple  { color: var(--purple);  text-shadow: 0 0 8px rgba(168,85,247,0.4); }
   .stat-magenta { color: var(--magenta); text-shadow: 0 0 8px rgba(232,121,249,0.4); }
 
-  /* ── EXEC LOG ── */
+  /* ── EXEC LOG (panel removed; styles kept for any callers) ── */
   #exec-inner {
     flex: 1;
     overflow-y: auto;
@@ -389,6 +389,20 @@
   .exec-tag  { flex-shrink: 0; width: 72px; font-size: 10px; font-weight: 700; }
   .exec-src  { color: var(--white); flex-shrink: 0; width: 90px; }
   .exec-detail { color: var(--dim); }
+
+  /* ── QUEUE PANEL ── */
+  #queue-inner {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 10px;
+    font-size: 11px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .queue-line  { display: flex; gap: 10px; align-items: baseline; line-height: 1.9; border-bottom: 1px dashed rgba(255,255,255,0.04); padding: 2px 0; }
+  .queue-idx   { color: var(--dim); font-size: 10px; flex-shrink: 0; width: 36px; font-weight: 700; }
+  .queue-src   { flex-shrink: 0; width: 60px; font-size: 10px; font-weight: 700; }
+  .queue-title { color: var(--white); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tag-LAUNCH  { color: var(--purple); }
   .tag-DRY     { color: var(--yellow); }
   .tag-FAILED  { color: var(--red); }
@@ -749,6 +763,21 @@
     <div class="panel-title" style="color:var(--cyan);"><span class="pdot pdot-cyan"></span>ALPHA</div>
     <div id="alpha-inner">
 
+      <!-- Launch Clock -->
+      <div class="scan-clock-widget" style="margin-bottom:8px;">
+        <div class="scan-clock-header">
+          <span class="scan-clock-title" style="color:var(--purple)">NEXT LAUNCH</span>
+          <span class="scan-clock-status" id="launch-clock-status">IDLE</span>
+        </div>
+        <div class="scan-clock-body">
+          <span class="scan-clock-time" id="launch-clock-time" style="color:var(--purple)">—:——</span>
+          <span class="scan-clock-unit">remaining</span>
+        </div>
+        <div class="scan-clock-bar-wrap">
+          <div class="scan-clock-bar" id="launch-clock-bar" style="width:100%;background:var(--purple);"></div>
+        </div>
+      </div>
+
       <!-- Scan Clock -->
       <div class="scan-clock-widget">
         <div class="scan-clock-header">
@@ -768,10 +797,15 @@
     </div>
   </div>
 
-  <!-- Execution log -->
+  <!-- Launch queue -->
   <div class="panel">
-    <div class="panel-title" style="color:var(--purple)"><span class="pdot pdot-purple"></span>EXECUTION LOG</div>
-    <div id="exec-inner"></div>
+    <div class="panel-title" style="color:var(--purple)">
+      <span class="pdot pdot-purple"></span>QUEUE
+      <span style="margin-left:8px;font-size:11px;color:var(--dim);font-weight:400;">
+        (<span id="queue-count">0</span> waiting)
+      </span>
+    </div>
+    <div id="queue-inner"></div>
   </div>
 
   <!-- Stats + Source heatmap -->
@@ -1408,9 +1442,10 @@ function addLog(msg, level = 'INFO', serverTs) {
   el.scrollTop = el.scrollHeight;
 }
 
-// ── Exec log ───────────────────────────────────────────────────────────
+// ── Exec log (panel removed; histogram trigger still uses these events) ──
 function addExecEntry(tag, src, detail, ts) {
   const el = document.getElementById('exec-inner');
+  if (!el) return;  // panel removed — no-op
   const time = ts ? new Date(ts*1000).toLocaleTimeString('en-GB',{hour12:false}) : new Date().toLocaleTimeString('en-GB',{hour12:false});
   const div = document.createElement('div');
   div.className = 'exec-line';
@@ -1423,6 +1458,35 @@ function addExecEntry(tag, src, detail, ts) {
   el.appendChild(div);
   while (el.children.length > 200) el.removeChild(el.firstChild);
   el.scrollTop = el.scrollHeight;
+}
+
+// ── Queue panel ─────────────────────────────────────────────────────────
+function renderQueue(items) {
+  const el = document.getElementById('queue-inner');
+  if (!el) return;
+  const countEl = document.getElementById('queue-count');
+  if (countEl) countEl.textContent = items ? items.length : 0;
+
+  if (!items || !items.length) {
+    el.innerHTML = '<div style="color:var(--dim);text-align:center;padding:20px;font-size:12px;">queue empty — nothing to launch</div>';
+    return;
+  }
+
+  el.innerHTML = items.map((it, i) => {
+    const next = i === 0 ? '<span style="color:var(--purple);font-weight:600;">NEXT</span>' : `#${i+1}`;
+    const src = (it.source || '').toUpperCase();
+    const srcColor = src === 'CONFIRMED' ? 'var(--green)' : 'var(--cyan)';
+    const retryTag = it.attempts > 0
+      ? `<span style="color:var(--yellow);font-size:10px;margin-left:6px;">retry ${it.attempts}</span>`
+      : '';
+    const title = escHtml((it.title || '').slice(0, 60));
+    return `
+      <div class="queue-line">
+        <span class="queue-idx">${next}</span>
+        <span class="queue-src" style="color:${srcColor}">[${src.slice(0,4).padEnd(4)}]</span>
+        <span class="queue-title">${title}${retryTag}</span>
+      </div>`;
+  }).join('');
 }
 
 // ── Chart ──────────────────────────────────────────────────────────────
@@ -1508,6 +1572,11 @@ function updateStats(s) {
     circuitText.textContent = 'OPEN';
   }
 
+  // Queue + launch clock
+  if (s.next_launch_at) _nextLaunchAt = s.next_launch_at;
+  if (s.launch_interval_seconds) _launchInterval = s.launch_interval_seconds;
+  if (Array.isArray(s.queue)) renderQueue(s.queue);
+
   // Stats panel
   document.getElementById('stat-total').textContent = total;
   document.getElementById('stat-today').textContent = today;
@@ -1537,41 +1606,66 @@ function updateStats(s) {
   document.getElementById('stat-avg-today').textContent   = avgToday.toFixed(4);
 }
 
-// ── Scan Clock ─────────────────────────────────────────────────────────
+// ── Scan + Launch Clocks ───────────────────────────────────────────────
 let _scanInterval = 300;
 let _lastScanTs = Date.now() / 1000;
 
+let _launchInterval = 300;
+let _nextLaunchAt = 0;  // seconds-since-epoch; 0 = no launch yet
+
 function resetScanClock(ts) { _lastScanTs = ts || Date.now() / 1000; }
 
-// single rAF loop drives both bar and text — always in sync
-let _lastDisplayedSec = -1;
-(function rafScanClock() {
+// single rAF loop drives both clocks
+let _lastScanSec = -1;
+let _lastLaunchSec = -1;
+function fmtMmSs(seconds) {
+  const s = Math.max(0, Math.floor(seconds));
+  const mm = String(Math.floor(s / 60)).padStart(1, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return mm + ':' + ss;
+}
+(function rafClocks() {
+  // SCAN
   const elapsed = Date.now() / 1000 - _lastScanTs;
-  const remaining = Math.max(0, _scanInterval - elapsed);
-  const pct = Math.max(0, 100 - (elapsed / _scanInterval) * 100);
-
-  const barEl = document.getElementById('scan-clock-bar');
-  if (barEl) barEl.style.width = pct + '%';
-
-  // update text only when the displayed second changes (avoids redundant DOM writes)
-  const remSec = Math.floor(remaining);
-  if (remSec !== _lastDisplayedSec) {
-    _lastDisplayedSec = remSec;
-    const mm = String(Math.floor(remaining / 60)).padStart(1, '0');
-    const ss = String(remSec % 60).padStart(2, '0');
-    const label = mm + ':' + ss;
+  const scanRemaining = Math.max(0, _scanInterval - elapsed);
+  const scanPct = Math.max(0, 100 - (elapsed / _scanInterval) * 100);
+  const scanBar = document.getElementById('scan-clock-bar');
+  if (scanBar) scanBar.style.width = scanPct + '%';
+  const scanRemSec = Math.floor(scanRemaining);
+  if (scanRemSec !== _lastScanSec) {
+    _lastScanSec = scanRemSec;
     const timeEl = document.getElementById('scan-clock-time');
-    const statNext = null;
+    if (timeEl) timeEl.textContent = fmtMmSs(scanRemaining);
     const statusEl = document.getElementById('scan-clock-status');
-    if (timeEl) timeEl.textContent = label;
-    if (statNext) statNext.textContent = label;
     if (statusEl) {
-      if (remaining === 0) { statusEl.textContent = 'SCANNING'; statusEl.style.color = 'var(--green)'; }
+      if (scanRemaining === 0) { statusEl.textContent = 'SCANNING'; statusEl.style.color = 'var(--green)'; }
       else { statusEl.textContent = 'IDLE'; statusEl.style.color = 'var(--cyan)'; }
     }
   }
 
-  requestAnimationFrame(rafScanClock);
+  // LAUNCH
+  const now = Date.now() / 1000;
+  const lRemaining = Math.max(0, _nextLaunchAt - now);
+  const lElapsed = _launchInterval - lRemaining;
+  const lPct = _nextLaunchAt
+    ? Math.max(0, Math.min(100, 100 - (lElapsed / _launchInterval) * 100))
+    : 0;
+  const lBar = document.getElementById('launch-clock-bar');
+  if (lBar) lBar.style.width = lPct + '%';
+  const lRemSec = Math.floor(lRemaining);
+  if (lRemSec !== _lastLaunchSec) {
+    _lastLaunchSec = lRemSec;
+    const timeEl = document.getElementById('launch-clock-time');
+    if (timeEl) timeEl.textContent = _nextLaunchAt ? fmtMmSs(lRemaining) : '—:——';
+    const statusEl = document.getElementById('launch-clock-status');
+    if (statusEl) {
+      if (!_nextLaunchAt)         { statusEl.textContent = 'IDLE';      statusEl.style.color = 'var(--dim)'; }
+      else if (lRemaining === 0)  { statusEl.textContent = 'LAUNCHING'; statusEl.style.color = 'var(--purple)'; }
+      else                        { statusEl.textContent = 'WAITING';   statusEl.style.color = 'var(--purple)'; }
+    }
+  }
+
+  requestAnimationFrame(rafClocks);
 })();
 
 // ── Metrics Histogram ────────────────────────────────────────────────────
