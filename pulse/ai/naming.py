@@ -21,18 +21,11 @@ _QUERY_RE = re.compile(r"^[^\n#]{1,60}$")
 
 
 def algorithmic_ticker(name: str) -> str:
-    """Same logic as pumpfun.make_ticker — repeated here so naming has no circular import."""
-    clean = re.sub(r"[^a-zA-Z0-9\s]", "", name).strip()
-    if not clean:
-        return "MEME"
-    words = clean.split()
-    if len(words) == 1:
-        t = words[0][:6].upper()
-    else:
-        t = "".join(w[0] for w in words[:6]).upper()
-    if len(t) < 3:
-        t = (t + "MEME")[:6]
-    return t[:6]
+    """Algorithmic fallback. Delegates to the canonical make_ticker so the
+    fallback path produces the exact same output that the bot used pre-AI.
+    """
+    from pulse.launchers.pumpfun import make_ticker
+    return make_ticker(name)
 
 
 async def generate_name_and_ticker(
