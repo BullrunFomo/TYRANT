@@ -54,11 +54,14 @@ _next_launch_at: float = 0.0
 # ── Startup seed ───────────────────────────────────────────────────────────────
 
 async def seed_queue() -> None:
-    """Pull the newest STARTUP_SEED_PER_CATEGORY entries from each KYM category
-    and push them to the queue. Runs once before the loops start.
+    """At startup, push the newest STARTUP_SEED_PER_CATEGORY entries from each
+    KYM category to the queue, and mark the REST of the current KYM list as
+    already-seen. That way the first scanner_loop tick won't flood the queue
+    with backlog — it only picks up entries that appear AFTER the bot started.
     """
     await emit_log("Seeding launch queue from KnowYourMeme…", "SYSTEM")
-    total = 0
+    total_queued = 0
+    total_suppressed = 0
     async with aiohttp.ClientSession() as session:
         for cat in config.KYM_CATEGORIES:
             try:
@@ -67,27 +70,56 @@ async def seed_queue() -> None:
                 logger.warning("Seed: %s scrape failed: %s", cat, exc)
                 await emit_log(f"  Seed [{cat}] failed: {exc}", "ERROR")
                 continue
-            entries = entries[: config.STARTUP_SEED_PER_CATEGORY]
-            # Filter against the time-windowed seen table.
-            filtered = []
-            for e in entries:
+            if not entries:
+                continue
+
+            to_seed = entries[: config.STARTUP_SEED_PER_CATEGORY]
+            backlog = entries[config.STARTUP_SEED_PER_CATEGORY :]
+
+            queued: list = []
+            for e in to_seed:
                 if await db.is_meme_seen(e.url):
                     continue
                 if not e.image_url:
                     e.image_url = await fetch_og_image(session, e.url) or ""
-                filtered.append(e)
-            added = await queue.push_many(filtered)
-            total += added
-            await emit_log(f"  Seed [{cat}]: +{added}", "OK")
-    await emit_log(f"Queue seeded with {total} meme(s) — size now {await queue.size()}", "SYSTEM")
+                queued.append(e)
+            added = await queue.push_many(queued)
+            total_queued += added
+
+            # Mark the rest as seen so scanner_loop skips them on its first run.
+            suppressed = 0
+            for e in backlog:
+                if not await db.is_meme_seen(e.url):
+                    await db.mark_meme_seen(e.url)
+                    suppressed += 1
+            total_suppressed += suppressed
+
+            await emit_log(
+                f"  Seed [{cat}]: queued {added}, suppressed {suppressed} backlog",
+                "OK",
+            )
+    await emit_log(
+        f"Queue seeded: {total_queued} memes ready, {total_suppressed} backlog suppressed — "
+        f"size now {await queue.size()}",
+        "SYSTEM",
+    )
 
 
 # ── Scanner loop ───────────────────────────────────────────────────────────────
 
 async def scanner_loop() -> None:
-    """Every SCAN_INTERVAL_SECONDS, scrape KYM and add new memes to the queue."""
+    """Every SCAN_INTERVAL_SECONDS, scrape KYM and add new memes to the queue.
+
+    Sleeps FIRST so the seed (which already ran at startup) isn't immediately
+    duplicated by a scrape. The first real scan is at t = SCAN_INTERVAL_SECONDS.
+    """
     scan_count = 0
+    await emit_log(
+        f"Scanner armed — first scrape in {config.SCAN_INTERVAL_SECONDS}s",
+        "SCAN",
+    )
     while True:
+        await _sleep_seconds(config.SCAN_INTERVAL_SECONDS)
         scan_count += 1
         try:
             await emit_log(f"Scan #{scan_count} — scraping KnowYourMeme…", "SCAN")
@@ -111,7 +143,6 @@ async def scanner_loop() -> None:
             f"Scan #{scan_count} complete — next scan in {config.SCAN_INTERVAL_SECONDS}s",
             "SCAN",
         )
-        await _sleep_seconds(config.SCAN_INTERVAL_SECONDS)
 
 
 # ── Launcher loop ──────────────────────────────────────────────────────────────
@@ -125,11 +156,16 @@ async def launcher_loop() -> None:
     """
     global _next_launch_at
     await emit_log(
-        f"Launcher running — minimum {config.LAUNCH_INTERVAL_SECONDS}s between launches",
+        f"Launcher armed — first launch in {config.LAUNCH_INTERVAL_SECONDS}s "
+        f"(set LAUNCH_INTERVAL_SECONDS in .env to change)",
         "SYSTEM",
     )
-    _next_launch_at = time.time()  # fire on first iteration
+    # First launch waits the full interval too — gives the operator time to
+    # eyeball the seeded queue and abort with Ctrl-C if something looks wrong.
+    _next_launch_at = time.time() + config.LAUNCH_INTERVAL_SECONDS
+    await _push_stats()
     while True:
+        await _sleep_seconds(config.LAUNCH_INTERVAL_SECONDS)
         try:
             await _launch_one_step()
         except Exception as exc:
@@ -137,7 +173,6 @@ async def launcher_loop() -> None:
             await emit_log(f"Launcher error: {exc}", "ERROR")
         _next_launch_at = time.time() + config.LAUNCH_INTERVAL_SECONDS
         await _push_stats()  # broadcast new countdown + queue snapshot
-        await _sleep_seconds(config.LAUNCH_INTERVAL_SECONDS)
 
 
 async def _launch_one_step() -> None:

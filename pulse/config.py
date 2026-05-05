@@ -38,8 +38,11 @@ PINATA_GATEWAY: str = os.getenv("PINATA_GATEWAY", "").strip().rstrip("/")
 # Only confirmed + submission feed the launch queue. Newsworthy/deadpool are noise.
 KYM_CATEGORIES: list = ["confirmed", "submission"]
 KYM_MAX_ENTRIES_PER_CATEGORY: int = int(os.getenv("KYM_MAX_ENTRIES_PER_CATEGORY", "100"))
-# Number of newest entries pulled from each KYM category to seed the queue at startup.
-STARTUP_SEED_PER_CATEGORY: int = int(os.getenv("STARTUP_SEED_PER_CATEGORY", "3"))
+# How many newest entries to pull from each KYM category at startup. Default
+# is 1 (= last confirmed + last submission). The remaining current entries are
+# marked seen at startup so the scanner only picks up genuinely new memes that
+# appear AFTER the bot is running, instead of flooding the queue with backlog.
+STARTUP_SEED_PER_CATEGORY: int = int(os.getenv("STARTUP_SEED_PER_CATEGORY", "1"))
 
 # ── Launch control ─────────────────────────────────────────────────────────────
 # Failed launches retry on the next cycle. After this many FAILED attempts
