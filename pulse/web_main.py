@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import logging.handlers
 import time
 
 import aiohttp
@@ -43,7 +44,13 @@ from pulse.web.server import (
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.FileHandler("tyrant.log"), logging.StreamHandler()],
+    handlers=[
+        # Rotate at 10 MB, keep 5 backups → bounded ~60 MB total on disk.
+        logging.handlers.RotatingFileHandler(
+            "tyrant.log", maxBytes=10 * 1024 * 1024, backupCount=5,
+        ),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -373,13 +380,14 @@ async def _push_stats(scan_count: int = 0) -> None:
     })
 
 
-# ── Sleep helper (yields cleanly so cancellation works) ───────────────────────
+# ── Sleep helper ──────────────────────────────────────────────────────────────
 
 async def _sleep_seconds(seconds: int) -> None:
-    elapsed = 0
-    while elapsed < seconds:
-        await asyncio.sleep(1)
-        elapsed += 1
+    """Single suspension. asyncio.sleep is cancellable, so KeyboardInterrupt
+    and task cancellation work fine without a 1-Hz polling loop.
+    """
+    if seconds > 0:
+        await asyncio.sleep(seconds)
 
 
 # ── FastAPI startup hook ──────────────────────────────────────────────────────
