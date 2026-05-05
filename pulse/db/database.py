@@ -28,6 +28,9 @@ class Launch:
     status: str          # LAUNCHED / FAILED / DRY_RUN
     sol_spent: float = 0.0
     error: str = ""
+    # Wallet SOL balance captured immediately before this launch attempt.
+    # Used to compute realized PnL between this launch and the next.
+    balance_before: float = 0.0
 
 
 @dataclass
@@ -54,19 +57,20 @@ async def get_db() -> aiosqlite.Connection:
 async def _migrate(db: aiosqlite.Connection) -> None:
     await db.executescript("""
         CREATE TABLE IF NOT EXISTS launched_memes (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp    REAL    NOT NULL,
-            name         TEXT    NOT NULL,
-            ticker       TEXT    NOT NULL,
-            source       TEXT    NOT NULL,
-            meme_url     TEXT    NOT NULL,
-            image_url    TEXT    NOT NULL DEFAULT '',
-            description  TEXT    NOT NULL DEFAULT '',
-            tx_sig       TEXT    NOT NULL DEFAULT '',
-            mint_address TEXT    NOT NULL DEFAULT '',
-            status       TEXT    NOT NULL DEFAULT 'PENDING',
-            sol_spent    REAL    NOT NULL DEFAULT 0.0,
-            error        TEXT    NOT NULL DEFAULT ''
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp      REAL    NOT NULL,
+            name           TEXT    NOT NULL,
+            ticker         TEXT    NOT NULL,
+            source         TEXT    NOT NULL,
+            meme_url       TEXT    NOT NULL,
+            image_url      TEXT    NOT NULL DEFAULT '',
+            description    TEXT    NOT NULL DEFAULT '',
+            tx_sig         TEXT    NOT NULL DEFAULT '',
+            mint_address   TEXT    NOT NULL DEFAULT '',
+            status         TEXT    NOT NULL DEFAULT 'PENDING',
+            sol_spent      REAL    NOT NULL DEFAULT 0.0,
+            error          TEXT    NOT NULL DEFAULT '',
+            balance_before REAL    NOT NULL DEFAULT 0.0
         );
 
         CREATE TABLE IF NOT EXISTS kym_seen (
@@ -80,6 +84,11 @@ async def _migrate(db: aiosqlite.Connection) -> None:
             total_count  INTEGER NOT NULL
         );
     """)
+    # Forward-migrate older databases that pre-date balance_before.
+    try:
+        await db.execute("ALTER TABLE launched_memes ADD COLUMN balance_before REAL NOT NULL DEFAULT 0.0")
+    except Exception:
+        pass  # column already exists
     await db.commit()
 
 
@@ -91,12 +100,13 @@ async def insert_launch(launch: Launch) -> int:
         cur = await db.execute(
             """INSERT INTO launched_memes
                (timestamp, name, ticker, source, meme_url, image_url,
-                description, tx_sig, mint_address, status, sol_spent, error)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                description, tx_sig, mint_address, status, sol_spent, error,
+                balance_before)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (launch.timestamp, launch.name, launch.ticker, launch.source,
              launch.meme_url, launch.image_url, launch.description,
              launch.tx_sig, launch.mint_address, launch.status,
-             launch.sol_spent, launch.error),
+             launch.sol_spent, launch.error, launch.balance_before),
         )
         await db.commit()
         return cur.lastrowid
@@ -217,6 +227,12 @@ async def get_launch_history(limit: int = 200) -> List[LaunchSnapshot]:
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _row_to_launch(row) -> Launch:
+    # `balance_before` is forward-migrated; older rows may not have it set.
+    bb = 0.0
+    try:
+        bb = float(row["balance_before"] or 0.0)
+    except (KeyError, IndexError, TypeError):
+        bb = 0.0
     return Launch(
         id=row["id"],
         timestamp=row["timestamp"],
@@ -231,4 +247,5 @@ def _row_to_launch(row) -> Launch:
         status=row["status"],
         sol_spent=row["sol_spent"],
         error=row["error"],
+        balance_before=bb,
     )

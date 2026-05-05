@@ -743,7 +743,7 @@
         </colgroup>
         <thead>
           <tr>
-            <th>NAME</th><th>TICKER</th><th>MCAP</th><th>STATUS</th><th>TIME</th><th></th>
+            <th>NAME</th><th>TICKER</th><th>PNL</th><th>STATUS</th><th>TIME</th><th></th>
           </tr>
         </thead>
         <tbody id="launches-body">
@@ -843,6 +843,14 @@
       <div class="stat-cell">
         <span id="stat-avg-today" class="stat-value stat-cyan">0.0000</span>
         <span class="stat-label">Avg SOL/Launch Today</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-pnl-total" class="stat-value stat-white">0.0000</span>
+        <span class="stat-label">Total PnL (SOL)</span>
+      </div>
+      <div class="stat-cell">
+        <span id="stat-pnl-today" class="stat-value stat-white">0.0000</span>
+        <span class="stat-label">Today PnL (SOL)</span>
       </div>
       <div class="stat-cell" style="min-width:120px;">
         <canvas id="metrics-histogram" width="120" height="36" style="display:block;border-radius:2px;"></canvas>
@@ -1527,14 +1535,23 @@ function renderLaunches(launches) {
   tbody.innerHTML = launches.slice(0, 20).map(l => {
     const color = STATUS_COLOR[l.status] || 'var(--dim)';
     const isReal = l.status === 'LAUNCHED' && l.mint_address && !l.mint_address.startsWith('DRY') && !l.mint_address.startsWith('SIM');
-    const pumpUrl = isReal ? `https://pump.fun/coin/${l.mint_address}` : (l.meme_url || '#');
+    const tradeUrl = isReal ? `https://trade.padre.gg/trade/solana/${l.mint_address}` : (l.meme_url || '#');
+    const pnl = (typeof l.pnl_sol === 'number') ? l.pnl_sol : null;
+    let pnlHtml;
+    if (pnl === null) {
+      pnlHtml = '<span style="color:var(--dim);font-size:10px;">—</span>';
+    } else {
+      const sign = pnl > 0 ? '+' : (pnl < 0 ? '' : '±');
+      const c = pnl > 0.00005 ? 'var(--green)' : pnl < -0.00005 ? 'var(--red)' : 'var(--dim)';
+      pnlHtml = `<span style="color:${c};font-size:10px;font-weight:700;">${sign}${pnl.toFixed(4)}</span>`;
+    }
     return `<tr>
       <td class="td-name" title="${escHtml(l.name)}">${escHtml(l.name.slice(0,16))}</td>
       <td class="td-ticker">${escHtml(l.ticker)}</td>
-      <td style="color:var(--cyan);font-size:9px;">—</td>
+      <td>${pnlHtml}</td>
       <td style="color:${color};font-weight:700;font-size:10px;letter-spacing:0.5px;">${l.status}</td>
       <td style="color:var(--dim);font-size:10px;">${timeAgo(l.timestamp)}</td>
-      <td style="text-align:center;"><a href="${pumpUrl}" target="_blank" title="Open" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
+      <td style="text-align:center;"><a href="${tradeUrl}" target="_blank" title="Open on Padre" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
     </tr>`;
   }).join('');
 }
@@ -1576,6 +1593,34 @@ function updateStats(s) {
   if (s.next_launch_at) _nextLaunchAt = s.next_launch_at;
   if (s.launch_interval_seconds) _launchInterval = s.launch_interval_seconds;
   if (Array.isArray(s.queue)) renderQueue(s.queue);
+
+  // Trades (with PnL) — auto-refresh launches table
+  if (Array.isArray(s.trades)) {
+    state.launches = s.trades;
+    renderLaunches(s.trades);
+  }
+
+  // PnL aggregates
+  function fmtPnl(v) {
+    if (typeof v !== 'number') return '0.0000';
+    return (v >= 0 ? '+' : '') + v.toFixed(4);
+  }
+  function pnlClass(v) {
+    if (typeof v !== 'number') return 'stat-white';
+    if (v > 0.00005) return 'stat-green';
+    if (v < -0.00005) return 'stat-red';
+    return 'stat-white';
+  }
+  const pTotal = document.getElementById('stat-pnl-total');
+  const pToday = document.getElementById('stat-pnl-today');
+  if (pTotal) {
+    pTotal.textContent = fmtPnl(s.total_pnl);
+    pTotal.className = 'stat-value ' + pnlClass(s.total_pnl);
+  }
+  if (pToday) {
+    pToday.textContent = fmtPnl(s.today_pnl);
+    pToday.className = 'stat-value ' + pnlClass(s.today_pnl);
+  }
 
   // Stats panel
   document.getElementById('stat-total').textContent = total;

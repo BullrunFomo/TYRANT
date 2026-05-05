@@ -30,6 +30,7 @@ from pulse.db.database import Launch
 from pulse.launchers.pumpfun import launch_token
 from pulse.market.meme_scanner import scan_for_new_memes
 from pulse.queue import queue
+from pulse.wallet import get_sol_balance
 from pulse.web.server import (
     app,
     emit_exec,
@@ -226,7 +227,13 @@ async def _launch_one_step() -> None:
             await db.mark_meme_seen(entry.url)
             return
 
-    # 5. Launch.
+    # 5. Snapshot wallet balance before the launch — used to compute realized
+    #    PnL between this launch and the next (or vs. current for the latest).
+    balance_before = await get_sol_balance()
+    if balance_before is None:
+        balance_before = 0.0
+
+    # 6. Launch.
     attempt = qm.attempts + 1
     retry_tag = (
         f" (retry {attempt}/{config.MAX_LAUNCH_RETRIES})" if attempt > 1 else ""
@@ -264,6 +271,7 @@ async def _launch_one_step() -> None:
         status=status,
         sol_spent=result.sol_spent,
         error=result.error,
+        balance_before=balance_before,
     )
     await db.insert_launch(record)
     await db.snapshot_launch_count()
@@ -305,6 +313,7 @@ async def _launch_one_step() -> None:
 # ── Stats / dashboard ─────────────────────────────────────────────────────────
 
 async def _push_stats(scan_count: int = 0) -> None:
+    from pulse.web.server import attach_pnls
     launches = await db.get_launches(200)
     total = await db.get_total_launches()
     today = await db.get_today_launches()
@@ -328,6 +337,17 @@ async def _push_stats(scan_count: int = 0) -> None:
         for qm in snap[:30]  # cap so the WS frame stays small
     ]
 
+    # PnL: snapshot wallet balance + compute realized PnL per launch
+    current_balance = await get_sol_balance()
+    trade_dicts = await attach_pnls(launches[:30], current_balance)
+    total_pnl = sum((t.get("pnl_sol") or 0.0) for t in trade_dicts)
+    today_cutoff = time.time() - (time.time() % 86400)
+    today_pnl = sum(
+        (t.get("pnl_sol") or 0.0)
+        for t in trade_dicts
+        if t.get("timestamp", 0) >= today_cutoff
+    )
+
     await emit_stats({
         "total_launches": total,
         "today_launches": len(today),
@@ -342,6 +362,10 @@ async def _push_stats(scan_count: int = 0) -> None:
         "queue": queue_payload,
         "next_launch_at": _next_launch_at,
         "launch_interval_seconds": config.LAUNCH_INTERVAL_SECONDS,
+        "total_pnl": total_pnl,
+        "today_pnl": today_pnl,
+        "wallet_balance": current_balance,
+        "trades": trade_dicts,
     })
     await emit_pnl_history({
         "timestamps": [h.timestamp for h in history],

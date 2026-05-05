@@ -134,8 +134,10 @@ async def get_stats():
 @app.get("/api/launches")
 async def get_launches():
     from pulse.db import database as db
+    from pulse.wallet import get_sol_balance
     launches = await db.get_launches(50)
-    return [_launch_dict(l) for l in launches]
+    current = await get_sol_balance()
+    return await attach_pnls(launches, current)
 
 
 @app.get("/api/pnl-history")
@@ -269,6 +271,7 @@ async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
     try:
         from pulse.db import database as db
+        from pulse.wallet import get_sol_balance
         total = await db.get_total_launches()
         today = await db.get_today_launches()
         sol = await db.get_total_sol_spent()
@@ -278,6 +281,15 @@ async def websocket_endpoint(ws: WebSocket):
         n_fail = sum(1 for l in launches if l.status == "FAILED")
         n_real_ok = sum(1 for l in launches if l.status in ("LAUNCHED", "SIMULATED"))
         n_real_attempts = n_real_ok + n_fail
+        current_balance = await get_sol_balance()
+        trade_dicts = await attach_pnls(launches, current_balance)
+        total_pnl = sum((t.get("pnl_sol") or 0.0) for t in trade_dicts)
+        today_cutoff = time.time() - (time.time() % 86400)
+        today_pnl = sum(
+            (t.get("pnl_sol") or 0.0)
+            for t in trade_dicts
+            if t.get("timestamp", 0) >= today_cutoff
+        )
 
         await ws.send_text(json.dumps({
             "type": "init",
@@ -290,12 +302,15 @@ async def websocket_endpoint(ws: WebSocket):
                 "n_real_attempts": n_real_attempts,
                 "success_rate": (n_real_ok / n_real_attempts) if n_real_attempts else 0.0,
                 "dry_run": config.DRY_RUN,
+                "total_pnl": total_pnl,
+                "today_pnl": today_pnl,
+                "wallet_balance": current_balance,
             },
             "pnl_history": {
                 "timestamps": [h.timestamp for h in history],
                 "values": [float(h.count) for h in history],
             },
-            "trades": [_launch_dict(l) for l in launches],
+            "trades": trade_dicts,
             "log_history": list(_log_buffer),
         }))
     except Exception:
@@ -310,7 +325,7 @@ async def websocket_endpoint(ws: WebSocket):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
-def _launch_dict(l) -> dict:
+def _launch_dict(l, pnl_sol=None) -> dict:
     return {
         "id": l.id,
         "timestamp": l.timestamp,
@@ -323,4 +338,34 @@ def _launch_dict(l) -> dict:
         "mint_address": l.mint_address,
         "status": l.status,
         "sol_spent": l.sol_spent,
+        "balance_before": l.balance_before,
+        "pnl_sol": pnl_sol,
     }
+
+
+async def attach_pnls(launches: list, current_balance) -> list:
+    """Compute realized PnL per launch and return enriched dicts.
+
+    Convention: launches are passed newest-first (DB default). PnL for launch L
+    at chronological position i is `launches[i+1].balance_before - launches[i].balance_before`
+    — i.e. how much SOL the wallet gained/lost between THIS launch and the
+    NEXT one. The most recent launch (no successor) is compared against
+    `current_balance`. Returns dicts in the same order as input.
+    """
+    # Sort ascending so successor lookup is just index+1
+    asc = sorted(launches, key=lambda x: x.timestamp)
+    pnl_by_id: dict = {}
+    for i, l in enumerate(asc):
+        if l.balance_before is None or l.balance_before <= 0:
+            pnl_by_id[l.id] = None
+            continue
+        if i + 1 < len(asc):
+            nxt = asc[i + 1]
+            if nxt.balance_before is None or nxt.balance_before <= 0:
+                pnl_by_id[l.id] = None
+            else:
+                pnl_by_id[l.id] = float(nxt.balance_before - l.balance_before)
+        else:
+            # Latest: compare against current wallet balance.
+            pnl_by_id[l.id] = (float(current_balance) - l.balance_before) if current_balance is not None else None
+    return [_launch_dict(l, pnl_by_id.get(l.id)) for l in launches]
