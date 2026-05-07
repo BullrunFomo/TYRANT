@@ -132,6 +132,7 @@ async def scanner_loop() -> None:
         try:
             await emit_log(f"Scan #{scan_count} — scraping KnowYourMeme…", "SCAN")
             new_memes = await scan_for_new_memes()
+
             added = await queue.push_many(new_memes) if new_memes else 0
             qsize = await queue.size()
             if added:
@@ -218,7 +219,7 @@ async def _launch_one_step() -> None:
         entry.description or f"KYM {entry.source} meme. Source: {entry.url}"
     )
 
-    # 4. Optional vision quality gate. OFF by default for KYM (curated source).
+    # 4. Quality gate — configurable via QUALITY_GATE_ENABLED.
     if config.QUALITY_GATE_ENABLED:
         verdict = await quality.score_launchability(
             title=entry.title,
@@ -255,6 +256,7 @@ async def _launch_one_step() -> None:
         description=description_final,
         meme_url=entry.url,
         source=entry.source,
+        title=entry.title,
     )
 
     if config.DRY_RUN:

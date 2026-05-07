@@ -683,12 +683,12 @@
 <!-- ══ BANNER ═══════════════════════════════════════════════════════════ -->
 <div id="pnl-banner">
   <div class="pnl-item">
-    <span class="pnl-label">TOTAL LAUNCHES</span>
-    <span id="total-launched" class="pnl-value cyan">0</span>
+    <span class="pnl-label">TOTAL PNL</span>
+    <span id="total-launched" class="pnl-value neu">0.0000</span>
   </div>
   <div class="pnl-item">
-    <span class="pnl-label">LAUNCHES TODAY</span>
-    <span id="today-launched" class="pnl-value cyan">0</span>
+    <span class="pnl-label">TODAY PNL</span>
+    <span id="today-launched" class="pnl-value neu">0.0000</span>
   </div>
   <div class="pnl-item">
     <span class="pnl-label">EQUITY</span>
@@ -844,14 +844,7 @@
         <span id="stat-avg-today" class="stat-value stat-cyan">0.0000</span>
         <span class="stat-label">Avg SOL/Launch Today</span>
       </div>
-      <div class="stat-cell">
-        <span id="stat-pnl-total" class="stat-value stat-white">0.0000</span>
-        <span class="stat-label">Total PnL (SOL)</span>
-      </div>
-      <div class="stat-cell">
-        <span id="stat-pnl-today" class="stat-value stat-white">0.0000</span>
-        <span class="stat-label">Today PnL (SOL)</span>
-      </div>
+
       <div class="stat-cell" style="min-width:120px;">
         <canvas id="metrics-histogram" width="120" height="36" style="display:block;border-radius:2px;"></canvas>
       </div>
@@ -1534,8 +1527,7 @@ function renderLaunches(launches) {
   };
   tbody.innerHTML = launches.slice(0, 20).map(l => {
     const color = STATUS_COLOR[l.status] || 'var(--dim)';
-    const isReal = l.status === 'LAUNCHED' && l.mint_address && !l.mint_address.startsWith('DRY') && !l.mint_address.startsWith('SIM');
-    const tradeUrl = isReal ? `https://trade.padre.gg/trade/solana/${l.mint_address}` : (l.meme_url || '#');
+    const tradeUrl = l.meme_url || '#';
     const pnl = (typeof l.pnl_sol === 'number') ? l.pnl_sol : null;
     let pnlHtml;
     if (pnl === null) {
@@ -1551,7 +1543,7 @@ function renderLaunches(launches) {
       <td>${pnlHtml}</td>
       <td style="color:${color};font-weight:700;font-size:10px;letter-spacing:0.5px;">${l.status}</td>
       <td style="color:var(--dim);font-size:10px;">${timeAgo(l.timestamp)}</td>
-      <td style="text-align:center;"><a href="${tradeUrl}" target="_blank" title="Open on Padre" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
+      <td style="text-align:center;"><a href="${tradeUrl}" target="_blank" title="Open source" class="row-link-btn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></td>
     </tr>`;
   }).join('');
 }
@@ -1566,8 +1558,12 @@ function updateStats(s) {
   const ratePct = (s.success_rate || 0) * 100;
 
   // Banner
-  document.getElementById('total-launched').textContent = total;
-  document.getElementById('today-launched').textContent = today;
+  const elTotalPnl = document.getElementById('total-launched');
+  elTotalPnl.textContent = fmtPnl(s.total_pnl);
+  elTotalPnl.className = 'pnl-value ' + (s.total_pnl > 0 ? 'pos' : s.total_pnl < 0 ? 'neg' : 'neu');
+  const elTodayPnl = document.getElementById('today-launched');
+  elTodayPnl.textContent = fmtPnl(s.today_pnl);
+  elTodayPnl.className = 'pnl-value ' + (s.today_pnl > 0 ? 'pos' : s.today_pnl < 0 ? 'neg' : 'neu');
 
   const srEl = document.getElementById('success-rate');
   if (realN === 0) {

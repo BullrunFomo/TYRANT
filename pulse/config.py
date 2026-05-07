@@ -72,11 +72,13 @@ OPENROUTER_MODEL_NAMING: str = os.getenv("OPENROUTER_MODEL_NAMING", "anthropic/c
 OPENROUTER_MODEL_DESCRIPTION: str = os.getenv("OPENROUTER_MODEL_DESCRIPTION", "anthropic/claude-haiku-4.5")
 OPENROUTER_MODEL_QUALITY: str = os.getenv("OPENROUTER_MODEL_QUALITY", "google/gemini-2.5-flash")
 OPENROUTER_MODEL_DEDUPE: str = os.getenv("OPENROUTER_MODEL_DEDUPE", "anthropic/claude-haiku-4.5")
+OPENROUTER_MODEL_TWEET: str = os.getenv("OPENROUTER_MODEL_TWEET", "anthropic/claude-haiku-4.5")
 # Toggle each AI step. Quality gate is OFF by default (KYM is curated already).
 NAMING_ENABLED: bool = os.getenv("NAMING_ENABLED", "true").lower() == "true"
 DESCRIPTION_ENABLED: bool = os.getenv("DESCRIPTION_ENABLED", "true").lower() == "true"
 QUALITY_GATE_ENABLED: bool = os.getenv("QUALITY_GATE_ENABLED", "false").lower() == "true"
 DEDUPE_ENABLED: bool = os.getenv("DEDUPE_ENABLED", "true").lower() == "true"
+TWEET_AI_ENABLED: bool = os.getenv("TWEET_AI_ENABLED", "true").lower() == "true"
 # How far back semantic dedup looks. After this window passes, a meme
 # (same URL or near-duplicate) becomes eligible to relaunch. Default 7 days.
 DEDUPE_WINDOW_SECONDS: int = int(os.getenv("DEDUPE_WINDOW_SECONDS", str(7 * 86400)))
@@ -86,6 +88,11 @@ OPENROUTER_TITLE: str = os.getenv("OPENROUTER_TITLE", "TYRANT//BOT")
 
 # ── Database ───────────────────────────────────────────────────────────────────
 DB_PATH: str = os.getenv("DB_PATH", "tyrant_launches.db")
+
+# ── Twitter/X ──────────────────────────────────────────────────────────────────
+TWITTER_USERNAME: str = os.getenv("TWITTER_USERNAME", "")
+TWITTER_EMAIL: str = os.getenv("TWITTER_EMAIL", "")
+TWITTER_PASSWORD: str = os.getenv("TWITTER_PASSWORD", "")
 
 # ── Misc ───────────────────────────────────────────────────────────────────────
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")

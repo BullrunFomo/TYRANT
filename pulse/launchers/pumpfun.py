@@ -717,6 +717,7 @@ async def _upload_metadata(
     image_url: str,
     meme_url: str = "",
     source: str = "",
+    tweet_url: Optional[str] = None,
 ) -> Optional[str]:
     if image_data:
         content_type, ext = "image/jpeg", "jpg"
@@ -754,9 +755,10 @@ async def _upload_metadata(
     }
     if meme_url:
         metadata["website"] = meme_url
-    # Twitter search for the meme name — there's no specific tweet, but the search
-    # surfaces current activity which is what most pump.fun launches link to.
-    metadata["twitter"] = f"https://x.com/search?q={quote(name)}"
+    if tweet_url:
+        metadata["twitter"] = tweet_url
+    else:
+        metadata["twitter"] = f"https://x.com/search?q={quote(name)}"
 
     meta_cid = await _pinata_upload(
         session, json.dumps(metadata).encode("utf-8"), "metadata.json", "application/json"
@@ -854,6 +856,7 @@ async def launch_token(
     description: str = "",
     meme_url: str = "",
     source: str = "",
+    title: str = "",
 ) -> LaunchResult:
     """
     Full pump.fun token launch (direct on-chain, Token2022):
@@ -892,12 +895,16 @@ async def launch_token(
     except Exception as exc:
         return LaunchResult(success=False, error=f"Keypair error: {exc}")
 
+    # ── Tweet (before IPFS so the URL lands in metadata) ─────────────────────
+    from pulse.launchers.twitter import post_tweet
+    tweet_url = await post_tweet(name, ticker, description, title)
+
     # ── IPFS upload ───────────────────────────────────────────────────────────
     async with aiohttp.ClientSession() as session:
         image_data = await _download_image(session, image_url)
         metadata_uri = await _upload_metadata(
             session, name, ticker, description, image_data, image_url,
-            meme_url=meme_url, source=source,
+            meme_url=meme_url, source=source, tweet_url=tweet_url,
         )
     if not metadata_uri:
         return LaunchResult(success=False, error="IPFS upload failed")
